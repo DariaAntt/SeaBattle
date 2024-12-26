@@ -1,4 +1,5 @@
 #  Module Imports
+import os
 import sys
 import pygame
 import random
@@ -281,7 +282,7 @@ class Button:
     def draw(self, window):
         self.updateButtons(DEPLOYMENT)
         self.focusOnButton(window)
-        if self.name != 'null':
+        if self.name.find('null'):
             window.blit(self.msg, self.msgRect)
 
 
@@ -762,7 +763,7 @@ def startScreen(window):
 # -----------------------------------Регистрация----------------------------------
 def registrationScreen(window):
     window.fill((255, 255, 255))
-    login = ''
+    login = player1.login
     login_active = False
     error_message = ''  # Сообщение об ошибке
     error_font = pygame.font.Font(None, 22)
@@ -789,6 +790,16 @@ def registrationScreen(window):
                 else:
                     login_active = False
                     color = color_inactive
+
+                for button in BUTTONS:
+                    if button.rect.collidepoint(pygame.mouse.get_pos()):
+                        if button.name == 'null_add' and button.active == True:
+                            global GAMESTATE
+                            GAMESTATE = STAGE[2]
+                            return
+                        if button.name == 'Сохранить профиль' and button.active == True:
+                            pass
+
             elif event.type == pygame.KEYDOWN:
                 if login_active:
                     if event.key == pygame.K_BACKSPACE:
@@ -808,8 +819,21 @@ def registrationScreen(window):
 
         # Отрисовка элементов
         window.fill((255, 255, 255))  # Очистка экрана
-        pygame.draw.circle(window, (0, 0, 0), (SCREENWIDTH / 2, radius * 2), radius)
         pygame.draw.rect(window, color, input_rect, 2, 5)
+
+        # Отрисовка аватара
+        pygame.draw.circle(window, (0, 0, 0), (SCREENWIDTH // 2, radius * 2), radius)
+        if player1.avatar:  # Если аватар выбран
+            avatar_image = pygame.image.load(player1.avatar).convert_alpha()
+            avatar_image = pygame.transform.scale(avatar_image, (radius * 2, radius * 2))
+
+            # Создаем поверхность с маской круга
+            avatar_surface = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
+            pygame.draw.circle(avatar_surface, (255, 255, 255, 255), (radius, radius), radius)
+            avatar_surface.blit(avatar_image, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
+
+            # Рисуем результат на экране
+            window.blit(avatar_surface, (SCREENWIDTH // 2 - radius, radius * 2 - radius))
 
         # Обновление текстовой поверхности
         text_surface = font.render(login, True, (0, 0, 0))
@@ -821,13 +845,106 @@ def registrationScreen(window):
             window.blit(error_surface, (input_rect.x, input_rect.y + 50))
 
         for button in BUTTONS:
-            if button.name in ['null', 'Сохранить профиль']:
+            if button.name in ['null_add', 'Сохранить профиль']:
                 button.active = True
                 button.draw(window)
             else:
                 button.active = False
         pygame.display.flip()
         pygame.time.Clock().tick(60)
+
+
+
+# -----------------------------------Выбор аватара----------------------------------
+def selectAvatarScreen(window):
+    global GAMESTATE  # Для изменения состояния игры и возвращения на экран регистрации
+
+    # Настройки экрана
+    window.fill((255, 255, 255))
+    font = pygame.font.Font(None, 28)
+
+    # Параметры аватаров
+    size = 125
+    avatar_size = (size, size)
+    avatar_margin = 30
+    row_count = 2
+    avatar_folder = "assets/images/avatars"
+
+    # Загрузка изображений аватаров
+    avatar_paths = [f"{avatar_folder}/{img}" for img in sorted(os.listdir(avatar_folder))]
+    avatars = [pygame.image.load(path).convert_alpha() for path in avatar_paths]
+    avatars = [pygame.transform.scale(avatar, avatar_size) for avatar in avatars]
+
+    # Расположение аватаров
+    avatar_rects = []
+    for i, avatar in enumerate(avatars):
+        row = i // (len(avatars) // row_count)
+        col = i % (len(avatars) // row_count)
+        x = size + col * (avatar_size[0] + avatar_margin)
+        y = size + row * (avatar_size[1] + avatar_margin)
+        avatar_rects.append(pygame.Rect(x, y, *avatar_size))
+
+
+    hovered_avatar_index = None
+    selected_avatar_index = None
+    running = True
+
+    # Главный цикл
+    while running:
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == MOUSEMOTION:
+                # Подсветка аватаров при наведении мыши
+                hovered_avatar_index = None
+                for i, rect in enumerate(avatar_rects):
+                    if rect.collidepoint(event.pos):
+                        hovered_avatar_index = i
+                        break
+                
+            elif event.type == MOUSEBUTTONDOWN:
+                # Проверка клика по аватару
+                for i, rect in enumerate(avatar_rects):
+                    if rect.collidepoint(event.pos):
+                        selected_avatar_index = i
+                        break
+                     
+                for button in BUTTONS:
+                    if button.rect.collidepoint(pygame.mouse.get_pos()):
+                        if button.name == 'Выбрать' and button.active == True:
+                            if selectAvatarScreen is not None:
+                                # Сохранение пути к аватару
+                                player1.avatar = avatar_paths[selected_avatar_index]
+                                global GAMESTATE
+                                GAMESTATE = 'Registration'
+                                return
+
+
+        # Отрисовка аватаров
+        window.fill((255, 255, 255))
+        for i, avatar in enumerate(avatars):
+            # Подсветка при наведении
+            if hovered_avatar_index == i:
+                pygame.draw.rect(window, (0, 255, 0), avatar_rects[i], 5)  # Зеленая подсветка
+            # Подсветка выбранного аватара
+            elif selected_avatar_index == i:
+                pygame.draw.rect(window, (255, 0, 0), avatar_rects[i], 5)  # Красная рамка
+            window.blit(avatar, avatar_rects[i].topleft)
+        for i, avatar in enumerate(avatars):
+            window.blit(avatar, avatar_rects[i].topleft)
+
+        # Отрисовка кнопки "Выбрать"
+        for button in BUTTONS:
+            if button.name in ['Выбрать']:
+                button.active = True
+                button.draw(window)
+            else:
+                button.active = False
+
+        pygame.display.flip()
+        pygame.time.Clock().tick(60)
+
 
 
 # -------------------------------------Выбор уровня противника-------------------------------------
@@ -897,13 +1014,14 @@ def updateGameScreen(window, GAMESTATE):
         startScreen(window)
     elif GAMESTATE == 'Registration':
         registrationScreen(window)
+    elif GAMESTATE == 'Select Avatar':
+        selectAvatarScreen(window)
     elif GAMESTATE == 'Main Menu':
         mainMenuScreen(window)
     elif GAMESTATE == 'Deployment':
         deploymentScreen(window)
     elif GAMESTATE == 'Game Over':
         endScreen(window)
-
     pygame.display.update()
 
 
@@ -942,7 +1060,7 @@ FLEET = {
     'one3': ['one3', 'assets/images/ships/one.png', (CELLSIZE*10, 470), (CELLSIZE, CELLSIZE)],
     'one4': ['one4', 'assets/images/ships/one.png', (CELLSIZE*10, 470), (CELLSIZE, CELLSIZE)],
 }
-STAGE = ['Start Menu', 'Registration','Main Menu', 'Deployment', 'Game Over']
+STAGE = ['Start Menu', 'Registration', 'Select Avatar','Main Menu', 'Deployment', 'Game Over']
 
 #  Loading Game Variables
 pGameGrid = createGameGrid(ROWS, COLS, CELLSIZE, (CELLSIZE*4, 110 + CELLSIZE))
@@ -974,7 +1092,8 @@ BUTTONS = [
     Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 + 100), 'Начать игру'),
     
     Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT - 150), 'Сохранить профиль'),
-    Button(BUTTONADD, (40, 40), (SCREENWIDTH/2 + 50, 250), 'null'),
+    Button(BUTTONADD, (40, 40), (SCREENWIDTH/2 + 50, 250), 'null_add'),
+    Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT - 150), 'Выбрать'),
 
     Button(BUTTONIMAGE, (90, 40), (500, 500), 'Случайная'),
     Button(BUTTONIMAGE, (90, 40), (600, 500), 'Сбросить'),
@@ -1015,14 +1134,6 @@ while RUNGAME:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             RUNGAME = False
-
-        # Пыталась считать логин
-        # elif event.type == pygame.KEYDOWN and GAMESTATE == 'Registration' :
-        #     if event.key == pygame.K_BACKSPACE:
-        #         player1.login = login[:-1]
-        #     else:
-        #         player1.login += event.unicode
-
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
                 if DEPLOYMENT == True:
@@ -1043,10 +1154,12 @@ while RUNGAME:
 
                 for button in BUTTONS:
                     if button.rect.collidepoint(pygame.mouse.get_pos()):
-                        if button.name == 'Начать игру' and button.active == True:
-                            GAMESTATE = STAGE[2]
-                        elif button.name == 'Создать профиль' and button.active == True:
+                        if button.name == 'Создать профиль' and button.active == True:
                             GAMESTATE = STAGE[1]
+                        # elif button.name == 'null_add' and button.active == True:
+                        #     GAMESTATE = STAGE[2]
+                        elif button.name == 'Начать игру' and button.active == True:
+                            GAMESTATE = STAGE[3]
                         elif button.name == 'Играть' and button.active == True:
                             status = deploymentPhase(DEPLOYMENT)
                             DEPLOYMENT = status
@@ -1068,7 +1181,7 @@ while RUNGAME:
                                 updateGameLogic(cGameGrid, cFleet, cGameLogic)
                                 status = deploymentPhase(DEPLOYMENT)
                                 DEPLOYMENT = status
-                            GAMESTATE = STAGE[3]
+                            GAMESTATE = STAGE[5]
                         button.actionOnPress()
 
 
@@ -1097,7 +1210,7 @@ while RUNGAME:
         player1Wins = checkForWinners(cGameLogic)
         computerWins = checkForWinners(pGameLogic)
         if player1Wins == True or computerWins == True:
-            GAMESTATE = STAGE[2]
+            GAMESTATE = STAGE[5]
 
 
 
