@@ -1,4 +1,5 @@
 #  Module Imports
+import sys
 import pygame
 import random
 import json
@@ -742,18 +743,11 @@ def checkForWinners(grid):
     return validGame
 
 
-def shipLabelMaker(msg):
-    """Makes the ship labels to display on the screen"""
-    textMessage = pygame.font.SysFont('Stencil', 22)
-    textMessage = textMessage.render(msg, 1, (0, 17, 167))
-    textMessage = pygame.transform.rotate(textMessage, 90)
-    return textMessage
+# -------------------------------------------------------------------------------------
+# ------------------------------------- Экраны ----------------------------------------
+# -------------------------------------------------------------------------------------
 
-# ------------------------------------------------------------------------------------------------------
-# ------------------------------------- Экраны ----------------------------------
-# ------------------------------------------------------------------------------------------------------
-
-# -------------------------------------Начальный экран-------------------------------------
+# ----------------------------------Начальный экран------------------------------
 def startScreen(window):
     window.fill((255, 255, 255))
     window.blit(BACKGROUND, (0, 0))
@@ -765,35 +759,75 @@ def startScreen(window):
             button.active = False
 
 
-# -------------------------------------Регистрация-------------------------------------
+# -----------------------------------Регистрация----------------------------------
 def registrationScreen(window):
     window.fill((255, 255, 255))
-    radius = 100
     login = ''
+    login_active = False
+    error_message = ''  # Сообщение об ошибке
+    error_font = pygame.font.Font(None, 22)
+
+    radius = 100
     font = pygame.font.Font(None, 28)
+    input_rect = pygame.Rect(SCREENWIDTH / 2 - 100, radius * 3 + 50, 200, 40)
+    color_active = pygame.Color('#87CEFA')
+    color_inactive = pygame.Color('black')
+    color = color_inactive
 
-    # Круг для аватарки
-    pygame.draw.circle(window, (0, 0, 0), (SCREENWIDTH/2, radius*2), radius)
-    # Поле ввода логина
-    text_surface = font.render(login, True, (0,0,0))
-    window.blit(text_surface, (SCREENWIDTH/2 - radius,  radius*3 + 50))
+    running = True
+    while running:    
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                running = False
+                pygame.quit()
+                sys.exit()
+            elif event.type == MOUSEBUTTONDOWN:
+                # Проверяем клик по полю ввода
+                if input_rect.collidepoint(event.pos):
+                    login_active = True
+                    color = color_active
+                else:
+                    login_active = False
+                    color = color_inactive
+            elif event.type == pygame.KEYDOWN:
+                if login_active:
+                    if event.key == pygame.K_BACKSPACE:
+                        login = login[:-1]
+                    else:
+                        if (len(login) < 18):
+                            login += event.unicode
+                    # Проверка длины логина и установка сообщения об ошибке
+                if len(login) < 4:
+                    error_message = "Логин слишком короткий (мин. 4 символа)"
+                elif len(login) > 10:
+                    error_message = "Логин слишком длинный (макс. 10 символов)"
+                else:
+                    error_message = ''
 
-    for button in BUTTONS:
-        if button.name in ['null', 'Сохранить профиль']:
-            button.active = True
-            button.draw(window)
-        else:
-            button.active = False
-    pygame.display.update()
+        player1.login = login
 
-    # running = True
-    # while True:
-    #     for event in pygame.event.get():
-    #         if event.type == QUIT:
-    #             running = False
-    #         elif event.type == pygame.KEYDOWN:
-    #             login += event.unicode
+        # Отрисовка элементов
+        window.fill((255, 255, 255))  # Очистка экрана
+        pygame.draw.circle(window, (0, 0, 0), (SCREENWIDTH / 2, radius * 2), radius)
+        pygame.draw.rect(window, color, input_rect, 2, 5)
 
+        # Обновление текстовой поверхности
+        text_surface = font.render(login, True, (0, 0, 0))
+        window.blit(text_surface, (input_rect.x + 5, input_rect.y + 10))
+
+        # Отображение сообщения об ошибке (если есть)
+        if error_message:
+            error_surface = error_font.render(error_message, True, (255, 0, 0))
+            window.blit(error_surface, (input_rect.x, input_rect.y + 50))
+
+        for button in BUTTONS:
+            if button.name in ['null', 'Сохранить профиль']:
+                button.active = True
+                button.draw(window)
+            else:
+                button.active = False
+        pygame.display.flip()
+        pygame.time.Clock().tick(60)
 
 
 # -------------------------------------Выбор уровня противника-------------------------------------
@@ -982,12 +1016,12 @@ while RUNGAME:
         if event.type == pygame.QUIT:
             RUNGAME = False
 
-# Пыталась считать логин
-        elif GAMESTATE == 'Registration' and event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_BACKSPACE:
-                player1.login = login[:-1]
-            else:
-                player1.login += event.unicode
+        # Пыталась считать логин
+        # elif event.type == pygame.KEYDOWN and GAMESTATE == 'Registration' :
+        #     if event.key == pygame.K_BACKSPACE:
+        #         player1.login = login[:-1]
+        #     else:
+        #         player1.login += event.unicode
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
