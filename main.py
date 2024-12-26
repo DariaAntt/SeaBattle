@@ -125,20 +125,20 @@ class Ship:
         if self.rect.topleft != self.pos:
 
             #  Check to see if the ships position is outside of the grid:
-            if self.rect.left > gridCoords[0][-1][0] + 50 or \
+            if self.rect.left > gridCoords[0][-1][0] + CELLSIZE or \
                 self.rect.right < gridCoords[0][0][0] or \
-                self.rect.top > gridCoords[-1][0][1] + 50 or \
+                self.rect.top > gridCoords[-1][0][1] + CELLSIZE or \
                 self.rect.bottom < gridCoords[0][0][1]:
                 self.returnToDefaultPosition()
 
-            elif self.rect.right > gridCoords[0][-1][0]+50:
-                self.rect.right = gridCoords[0][-1][0] + 50
+            elif self.rect.right > gridCoords[0][-1][0]+CELLSIZE:
+                self.rect.right = gridCoords[0][-1][0] + CELLSIZE
             elif self.rect.left < gridCoords[0][0][0]:
                 self.rect.left = gridCoords[0][0][0]
             elif self.rect.top < gridCoords[0][0][1]:
                 self.rect.top = gridCoords[0][0][1]
-            elif self.rect.bottom > gridCoords[-1][0][1] + 50:
-                self.rect.bottom = gridCoords[-1][0][1] + 50
+            elif self.rect.bottom > gridCoords[-1][0][1] + CELLSIZE:
+                self.rect.bottom = gridCoords[-1][0][1] + CELLSIZE
             self.vImageRect.center = self.hImageRect.center = self.rect.center
 
 
@@ -168,7 +168,6 @@ class Button:
         self.imageLarger = pygame.transform.scale(self.imageLarger, (size[0] + 10, size[1] + 10))
         self.rect = self.image.get_rect()
         self.rect.topleft = pos
-        self.radarUsed = 0
         self.active = False
 
         self.msg = self.addText(msg)
@@ -177,7 +176,7 @@ class Button:
 
     def addText(self, msg):
         """Add font to the button image"""
-        font = pygame.font.SysFont('Stencil', 22)
+        font = pygame.font.SysFont('Arial', 16)
         message = font.render(msg, 1, (255,255,255))
         return message
 
@@ -194,14 +193,14 @@ class Button:
     def actionOnPress(self):
         """Which actions to take according to button selected"""
         if self.active:
-            if self.name == 'Randomize':
+            if self.name == 'Случайная':
                 self.randomizeShipPositions(pFleet, pGameGrid)
                 self.randomizeShipPositions(cFleet, cGameGrid)
-            elif self.name == 'Reset':
+            elif self.name == 'Сбросить':
                 self.resetShips(pFleet)
-            elif self.name == 'Deploy':
+            elif self.name == 'Играть':
                 self.deploymentPhase()
-            elif self.name == 'Quit':
+            elif self.name == 'Выйти':
                 pass
             elif self.name == 'Redeploy':
                 self.restartTheGame()
@@ -234,18 +233,16 @@ class Button:
 
     def updateButtons(self, gameStatus):
         """update the buttons as per the game stage"""
-        if self.name == 'Deploy' and gameStatus == False:
+        if self.name == 'Играть' and gameStatus == False:
             self.name = 'Redeploy'
         elif self.name == 'Redeploy' and gameStatus == True:
-            self.name = 'Deploy'
-        if self.name == 'Reset' and gameStatus == False:
-            self.name = 'Radar Scan'
-        elif self.name == 'Radar Scan' and gameStatus == True:
-            self.name = 'Reset'
-        if self.name == 'Randomize' and gameStatus == False:
-            self.name = 'Quit'
-        elif self.name == 'Quit' and gameStatus == True:
-            self.name = 'Randomize'
+            self.name = 'Играть'
+        # if self.name == 'Сбросить' and gameStatus == False:
+        #     self.name = 'Radar Scan'
+        if self.name == 'Случайная' and gameStatus == False:
+            self.name = 'Выйти'
+        elif self.name == 'Выйти' and gameStatus == True:
+            self.name = 'Случайная'
         self.msg = self.addText(self.name)
         self.msgRect = self.msg.get_rect(center=self.rect.center)
 
@@ -263,10 +260,10 @@ class Player:
     def makeAttack(self, grid, logicgrid):
         """When its the player's turn, the player must make an attacking selection within the computer grid."""
         posX, posY = pygame.mouse.get_pos()
-        if posX >= grid[0][0][0] and posX <= grid[0][-1][0] + 50 and posY >= grid[0][0][1] and posY <= grid[-1][0][1] + 50:
+        if posX >= grid[0][0][0] and posX <= grid[0][-1][0] + CELLSIZE and posY >= grid[0][0][1] and posY <= grid[-1][0][1] + CELLSIZE:
             for i, rowX in enumerate(grid):
                 for j, colX in enumerate(rowX):
-                    if posX >= colX[0] and posX < colX[0] + 50 and posY >= colX[1] and posY <= colX[1] + 50:
+                    if posX >= colX[0] and posX < colX[0] + CELLSIZE and posY >= colX[1] and posY <= colX[1] + CELLSIZE:
                         if logicgrid[i][j] != ' ':
                             if logicgrid[i][j] == 'O':
                                 TOKENS.append(Tokens(REDTOKEN, grid[i][j], 'Hit', None, None, None))
@@ -458,6 +455,8 @@ class Tokens:
 #  Game Utility Functions
 def createGameGrid(rows, cols, cellsize, pos):
     """Creates a game grid with coordinates for each cell"""
+    # startX = pos[0]-CELLSIZE*2
+    # startY = pos[1]+CELLSIZE*4
     startX = pos[0]
     startY = pos[1]
     coordGrid = []
@@ -507,10 +506,10 @@ def showGridOnScreen(window, cellsize, playerGrid, computerGrid):
 
 def printGameLogic():
     """prints to the terminal the game logic"""
-    print('Player Grid'.center(50, '#'))
+    print('Player Grid'.center(CELLSIZE, '#'))
     for _ in pGameLogic:
         print(_)
-    print('Computer Grid'.center(50, '#'))
+    print('Computer Grid'.center(CELLSIZE, '#'))
     for _ in cGameLogic:
         print(_)
 
@@ -616,43 +615,6 @@ def deploymentPhase(deployment):
         return True
 
 
-def pick_random_ship_location(gameLogic):
-    validChoice = False
-    while not validChoice:
-        posX = random.randint(0, 9)
-        posY = random.randint(0, 9)
-        if gameLogic[posX][posY] == 'O':
-            validChoice = True
-
-    return (posX, posY)
-
-
-def displayRadarScanner(imagelist, indnum, SCANNER):
-    if SCANNER == True and indnum <= 359:
-        image = increaseAnimationImage(imagelist, indnum)
-        return image
-    else:
-        return False
-
-
-def displayRadarBlip(num, position):
-    if SCANNER:
-        image = None
-        if position[0] >= 5 and position[1] >= 5:
-            if num >= 0 and num <= 90:
-                image = increaseAnimationImage(RADARBLIPIMAGES, num // 10)
-        elif position[0] < 5 and position[1] >= 5:
-            if num > 270 and num <= 360:
-                image = increaseAnimationImage(RADARBLIPIMAGES, (num // 4) // 10)
-        elif position[0] < 5 and position[1] < 5:
-            if num > 180 and num <= 270:
-                image = increaseAnimationImage(RADARBLIPIMAGES, (num // 3) // 10)
-        elif position[0] >= 5 and position[1] < 5:
-            if num > 90 and num <= 180:
-                image = increaseAnimationImage(RADARBLIPIMAGES, (num // 2) // 10)
-        return image
-
-
 def takeTurns(p1, p2):
     if p1.turn == True:
         p2.turn = False
@@ -692,9 +654,10 @@ def mainMenuScreen(window):
 
 def deploymentScreen(window):
     window.fill((255, 255, 255))
-    # window.blit(BACKGROUND, (0, 0))
-    window.blit(PGAMEGRIDIMG, (0, 0))
-    window.blit(CGAMEGRIDIMG, (cGameGrid[0][0][0] - 50, cGameGrid[0][0][1] - 50))
+    window.blit(PGAMEGRIDIMG, (CELLSIZE*3, 110))
+    window.blit(CGAMEGRIDIMG, (SCREENWIDTH - (ROWS * CELLSIZE) - CELLSIZE*4, 110))
+    # window.blit(PGAMEGRIDIMG, (0, 0))
+    # window.blit(CGAMEGRIDIMG, (cGameGrid[0][0][0] - CELLSIZE, cGameGrid[0][0][1] - CELLSIZE))
 
     #  Draws the player and computer grids to the screen
     # showGridOnScreen(window, CELLSIZE, pGameGrid, cGameGrid)
@@ -711,25 +674,13 @@ def deploymentScreen(window):
         ship.snapToGrid(cGameGrid)
 
     for button in BUTTONS:
-        if button.name in ['Randomize', 'Reset', 'Deploy', 'Quit', 'Radar Scan', 'Redeploy']:
+        if button.name in ['Случайная', 'Сбросить', 'Играть', 'Выйти', 'Redeploy']:
             button.active = True
             button.draw(window)
         else:
             button.active = False
 
     computer.draw(window)
-
-    radarScan = displayRadarScanner(RADARGRIDIMAGES, INDNUM, SCANNER)
-    if not radarScan:
-        pass
-    else:
-        window.blit(radarScan, (cGameGrid[0][0][0], cGameGrid[0][-1][1]))
-        window.blit(RADARGRID, (cGameGrid[0][0][0], cGameGrid[0][-1][1]))
-
-    RBlip = displayRadarBlip(INDNUM, BLIPPOSITION)
-    if RBlip:
-        window.blit(RBlip, (cGameGrid[BLIPPOSITION[0]][BLIPPOSITION[1]][0],
-                            cGameGrid[BLIPPOSITION[0]][BLIPPOSITION[1]][1]))
 
     for token in TOKENS:
         token.draw(window)
@@ -763,11 +714,11 @@ def updateGameScreen(window, GAMESTATE):
 
 
 #  Game Settings and Variables
-SCREENWIDTH = 1260
-SCREENHEIGHT = 800
+SCREENWIDTH = 1000
+SCREENHEIGHT = 650
 ROWS = 10
 COLS = 10
-CELLSIZE = 50
+CELLSIZE = 30
 DEPLOYMENT = True
 SCANNER = False
 INDNUM = 0
@@ -786,25 +737,27 @@ pygame.display.set_caption('Battle Ship')
 
 #  Game Lists/Dictionaries
 FLEET = {
-    'four': ['four', 'assets/images/ships/four.png', (50, 570), (50, 200)],
-    'three1': ['three1', 'assets/images/ships/three.png', (150, 570), (50, 150)],
-    'three2': ['three2', 'assets/images/ships/three.png', (150, 570), (50, 150)],
-    'two1': ['two1', 'assets/images/ships/two.png', (250, 570), (50, 100)],
-    'two2': ['two2', 'assets/images/ships/two.png', (250, 570), (50, 100)],
-    'two3': ['two3', 'assets/images/ships/two.png', (250, 570), (50, 100)],
-    'one1': ['one1', 'assets/images/ships/one.png', (350, 570), (50, 50)],
-    'one2': ['one2', 'assets/images/ships/one.png', (350, 570), (50, 50)],
-    'one3': ['one3', 'assets/images/ships/one.png', (350, 570), (50, 50)],
-    'one4': ['one4', 'assets/images/ships/one.png', (350, 570), (50, 50)],
+    'four': ['four', 'assets/images/ships/four.png', (CELLSIZE*4, 470), (CELLSIZE, CELLSIZE*4)],
+    'three1': ['three1', 'assets/images/ships/three.png', (CELLSIZE*6, 470), (CELLSIZE, CELLSIZE*3)],
+    'three2': ['three2', 'assets/images/ships/three.png', (CELLSIZE*6, 470), (CELLSIZE, CELLSIZE*3)],
+    'two1': ['two1', 'assets/images/ships/two.png', (CELLSIZE*8, 470), (CELLSIZE, CELLSIZE*2)],
+    'two2': ['two2', 'assets/images/ships/two.png', (CELLSIZE*8, 470), (CELLSIZE, CELLSIZE*2)],
+    'two3': ['two3', 'assets/images/ships/two.png', (CELLSIZE*8, 470), (CELLSIZE, CELLSIZE*2)],
+    'one1': ['one1', 'assets/images/ships/one.png', (CELLSIZE*10, 470), (CELLSIZE, CELLSIZE)],
+    'one2': ['one2', 'assets/images/ships/one.png', (CELLSIZE*10, 470), (CELLSIZE, CELLSIZE)],
+    'one3': ['one3', 'assets/images/ships/one.png', (CELLSIZE*10, 470), (CELLSIZE, CELLSIZE)],
+    'one4': ['one4', 'assets/images/ships/one.png', (CELLSIZE*10, 470), (CELLSIZE, CELLSIZE)],
 }
 STAGE = ['Main Menu', 'Deployment', 'Game Over']
 
 #  Loading Game Variables
-pGameGrid = createGameGrid(ROWS, COLS, CELLSIZE, (50, 50))
+pGameGrid = createGameGrid(ROWS, COLS, CELLSIZE, (CELLSIZE*4, 110 + CELLSIZE))
+# pGameGrid = createGameGrid(ROWS, COLS, CELLSIZE, (CELLSIZE, CELLSIZE))
 pGameLogic = createGameLogic(ROWS, COLS)
 pFleet = createFleet()
 
-cGameGrid = createGameGrid(ROWS, COLS, CELLSIZE, (SCREENWIDTH - (ROWS * CELLSIZE), 50))
+cGameGrid = createGameGrid(ROWS, COLS, CELLSIZE, (SCREENWIDTH - (ROWS * CELLSIZE) - CELLSIZE*3, 110 + CELLSIZE))
+# cGameGrid = createGameGrid(ROWS, COLS, CELLSIZE, (SCREENWIDTH - (ROWS * CELLSIZE), CELLSIZE))
 cGameLogic = createGameLogic(ROWS, COLS)
 cFleet = createFleet()
 randomizeShipPositions(cFleet, cGameGrid)
@@ -818,12 +771,12 @@ ENDSCREENIMAGE = loadImage('assets/images/background/Carrier.jpg', (SCREENWIDTH,
 # BACKGROUND = loadImage('assets/images/background/gamebg.png', (SCREENWIDTH, SCREENHEIGHT))
 PGAMEGRIDIMG = loadImage('assets/images/grids/grid.png', ((ROWS + 1) * CELLSIZE, (COLS + 1) * CELLSIZE))
 CGAMEGRIDIMG = loadImage('assets/images/grids/grid.png', ((ROWS + 1) * CELLSIZE, (COLS + 1) * CELLSIZE))
-BUTTONIMAGE = loadImage('assets/images/buttons/button.png', (150, 50))
-BUTTONIMAGE1 = loadImage('assets/images/buttons/button.png', (250, 100))
+BUTTONIMAGE = loadImage('assets/images/buttons/button.png', (90, 30))
+BUTTONIMAGE1 = loadImage('assets/images/buttons/button.png', (200, 60))
 BUTTONS = [
-    Button(BUTTONIMAGE, (150, 50), (725, 700), 'Randomize'),
-    Button(BUTTONIMAGE, (150, 50), (900, 700), 'Reset'),
-    Button(BUTTONIMAGE, (150, 50), (1075, 700), 'Deploy'),
+    Button(BUTTONIMAGE, (90, 30), (500, 500), 'Случайная'),
+    Button(BUTTONIMAGE, (90, 30), (600, 500), 'Сбросить'),
+    Button(BUTTONIMAGE, (90, 30), (700, 500), 'Играть'),
     Button(BUTTONIMAGE1, (250, 100), (700, SCREENHEIGHT // 2 - 150), 'Easy Computer'),
     Button(BUTTONIMAGE1, (250, 100), (700, SCREENHEIGHT // 2 + 150), 'Hard Computer')
 ]
@@ -837,9 +790,6 @@ for row in range(8):
     for col in range(8):
         EXPLOSIONIMAGELIST.append(loadSpriteSheetImages(EXPLOSIONSPRITESHEET, col, row, (CELLSIZE, CELLSIZE), (128, 128)))
 TOKENS = []
-RADARGRIDIMAGES = loadAnimationImages('assets/images/radar_base/radar_anim', 360, (ROWS * CELLSIZE, COLS * CELLSIZE))
-RADARBLIPIMAGES = loadAnimationImages('assets/images/radar_blip/Blip_', 11, (50, 50))
-RADARGRID = loadImage('assets/images/grids/grid_faint.png', ((ROWS) * CELLSIZE, (COLS) * CELLSIZE))
 HITSOUND = pygame.mixer.Sound('assets/sounds/explosion.wav')
 HITSOUND.set_volume(0.05)
 SHOTSOUND = pygame.mixer.Sound('assets/sounds/gunshot.wav')
@@ -880,18 +830,14 @@ while RUNGAME:
 
                 for button in BUTTONS:
                     if button.rect.collidepoint(pygame.mouse.get_pos()):
-                        if button.name == 'Deploy' and button.active == True:
+                        if button.name == 'Играть' and button.active == True:
                             status = deploymentPhase(DEPLOYMENT)
                             DEPLOYMENT = status
                         elif button.name == 'Redeploy' and button.active == True:
                             status = deploymentPhase(DEPLOYMENT)
                             DEPLOYMENT = status
-                        elif button.name == 'Quit' and button.active == True:
+                        elif button.name == 'Выйти' and button.active == True:
                             RUNGAME = False
-                        elif button.name == 'Radar Scan' and button.active == True:
-                            SCANNER = True
-                            INDNUM = 0
-                            BLIPPOSITION = pick_random_ship_location(cGameLogic)
                         elif (button.name == 'Easy Computer' or button.name == 'Hard Computer') and button.active == True:
                             if button.name == 'Easy Computer':
                                 computer = EasyComputer()
