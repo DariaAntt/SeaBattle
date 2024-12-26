@@ -3,12 +3,17 @@ import pygame
 import random
 import json
 from tkinter import Tk, filedialog
+from pygame.locals import *
 
 
 #  Module Initialization
 pygame.init()
 
 
+
+# ------------------------------------------------------------------------------------------------------
+# ------------------------------------- Корабль ----------------------------------
+# ------------------------------------------------------------------------------------------------------
 #  Game Assets and Objects
 class Ship:
     def __init__(self, name, img, pos, size):
@@ -68,13 +73,6 @@ class Ship:
 
             # Отладка
             print(f"Корабль '{self.name}' повернут. Новая ориентация: {'горизонтальная' if self.rotation else 'вертикальная'}.")
-        # """switch ship between vertical and horizontal"""
-        # if self.active or doRotation == True:
-        #     if self.rotation == False:
-        #         self.rotation = True
-        #     else:
-        #         self.rotation = False
-        #     self.switchImageAndRect()
 
 
     def switchImageAndRect(self):
@@ -92,15 +90,6 @@ class Ship:
 
         # Отладка
         print(f"Синхронизация изображения и прямоугольников завершена для '{self.name}'.")
-
-        # """Switches from Horizontal to Vertical and vice versa"""
-        # if self.rotation == True:
-        #     self.image = self.hImage
-        #     self.rect = self.hImageRect
-        # else:
-        #     self.image = self.vImage
-        #     self.rect = self.vImageRect
-        # self.hImageRect.center = self.vImageRect.center = self.rect.center
 
 
     def checkForCollisions(self, shiplist):
@@ -148,26 +137,6 @@ class Ship:
                 return True
 
         return False
-        # """Check to make sure the ship is not going to collide with any other ship before rotating"""
-        # slist = shiplist.copy()
-        # slist.remove(self)
-        # # Предполагаемое новое положение после поворота
-        # new_rect = self.hImageRect if not self.rotation else self.vImageRect
-        # for ship in slist:
-        #     # Проверка прямого столкновения
-        #     if new_rect.colliderect(ship.rect):
-        #         return True
-            
-        #     # Проверка буферной зоны (расстояние 1 клетка)
-        #     buffer_zone = pygame.Rect(
-        #         ship.rect.left - CELLSIZE,
-        #         ship.rect.top - CELLSIZE,
-        #         ship.rect.width + 2 * CELLSIZE,
-        #         ship.rect.height + 2 * CELLSIZE
-        #     )
-        #     if buffer_zone.colliderect(new_rect):
-        #         return True
-        # return False
 
 
     def returnToDefaultPosition(self):
@@ -218,6 +187,11 @@ class Ship:
         window.blit(self.image, self.rect)
         #pygame.draw.rect(window, (255, 0, 0), self.rect, 1)
 
+
+
+# ------------------------------------------------------------------------------------------------------
+# ------------------------------------- Кнопки ----------------------------------
+# ------------------------------------------------------------------------------------------------------
 class Button:
     def __init__(self, image, size, pos, msg):
         self.name = msg
@@ -234,7 +208,7 @@ class Button:
 
     def addText(self, msg):
         """Add font to the button image"""
-        font = pygame.font.SysFont('Arial', 16)
+        font = pygame.font.SysFont('Arial', 18, bold=True)
         message = font.render(msg, 1, (255,255,255))
         return message
 
@@ -266,7 +240,6 @@ class Button:
                 pass
 
 
-
     def randomizeShipPositions(self, shiplist, gameGrid):
         """Calls the randomize ships function"""
         if DEPLOYMENT == True:
@@ -296,10 +269,6 @@ class Button:
         """update the buttons as per the game stage"""
         if self.name == 'Играть' and gameStatus == False:
             self.name = ''
-        # elif self.name == 'Redeploy' and gameStatus == True:
-        #     self.name = 'Играть'
-        # if self.name == 'Сбросить' and gameStatus == False:
-        #     self.name = 'Radar Scan'
         if self.name == 'Случайная' and gameStatus == False:
             self.name = 'Выйти'
         elif self.name == 'Выйти' and gameStatus == True:
@@ -311,7 +280,8 @@ class Button:
     def draw(self, window):
         self.updateButtons(DEPLOYMENT)
         self.focusOnButton(window)
-        window.blit(self.msg, self.msgRect)
+        if self.name != 'null':
+            window.blit(self.msg, self.msgRect)
 
 
 # ------------------------------------------------------------------------------------------------------
@@ -373,40 +343,16 @@ def load_fleet_from_file(fleet):
                 # Если данные отсутствуют, возвращаем корабль в начальное положение
                 print(f"Корабль '{ship.name}' отсутствует в данных. Возвращён в начальное положение.")
                 ship.returnToDefaultPosition()
-    # root = Tk()
-    # root.withdraw()  # Скрыть главное окно Tkinter
-    # filename = filedialog.askopenfilename(
-    #     filetypes=[("Ship Battle files", "*.sb"), ("All files", "*.*")],
-    #     title="Загрузить расстановку кораблей"
-    # )
-    # if filename:
-    #     with open(filename, 'r') as f:
-    #         data = json.load(f)
 
-    #     for ship in fleet:
-    #         if ship.name in data:
-    #             # Загружаем позицию
-    #             ship.rect.topleft = tuple(data[ship.name]["position"])
-
-    #             # Устанавливаем ориентацию, если она не совпадает
-    #             if data[ship.name]["rotation"] != ship.rotation:
-    #                 ship.rotateShip(doRotation=True)
-
-    #             # Обновляем прямоугольники
-    #             ship.switchImageAndRect()
-    #             ship.hImageRect.topleft = ship.rect.topleft
-    #             ship.vImageRect.topleft = ship.rect.topleft
-    #         else:
-    #             # Если корабля нет в файле, возвращаем его в исходное положение
-    #             print(f"Корабль '{ship.name}' отсутствует в файле. Возвращен в исходное положение.")
-    #             ship.returnToDefaultPosition()
 
 # ------------------------------------------------------------------------------------------------------
+# ------------------------------------- Игрок ----------------------------------
 # ------------------------------------------------------------------------------------------------------
-
 class Player:
     def __init__(self):
         self.turn = True
+        self.login = ''
+        self.avatar = ''
 
     def makeAttack(self, grid, logicgrid):
         """When its the player's turn, the player must make an attacking selection within the computer grid."""
@@ -428,11 +374,14 @@ class Player:
         return self.turn
 
 
+# ------------------------------------------------------------------------------------------------------
+# ------------------------------------- Противник без добивания ----------------------------------
+# ------------------------------------------------------------------------------------------------------
 class EasyComputer:
     def __init__(self):
         self.turn = False
-        self.status = self.computerStatus('Thinking')
-        self.name = 'Easy Computer'
+        self.status = self.computerStatus('Ход противника. Думает...  -.-')
+        self.name = 'Легкий'
 
 
     def computerStatus(self, msg):
@@ -470,6 +419,10 @@ class EasyComputer:
             window.blit(self.status, (cGameGrid[0][0][0] - CELLSIZE, cGameGrid[-1][-1][1] + CELLSIZE))
 
 
+
+# ------------------------------------------------------------------------------------------------------
+# ------------------------------------- Противник с добиванием ----------------------------------
+# ------------------------------------------------------------------------------------------------------
 class HardComputer(EasyComputer):
     def __init__(self):
         super().__init__()
@@ -555,6 +508,10 @@ class HardComputer(EasyComputer):
         return
 
 
+
+# ------------------------------------------------------------------------------------------------------
+# ------------------------------------- Анимации ----------------------------------
+# ------------------------------------------------------------------------------------------------------
 class Tokens:
     def __init__(self, image, pos, action, imageList=None, explosionList=None, soundFile=None):
         self.image = image
@@ -716,6 +673,9 @@ def sortFleet(ship, shiplist):
     shiplist.append(ship)
 
 
+# ------------------------------------------------------------------------------------------------------
+# ------------------------------------- Случаная расстановка ----------------------------------
+# ------------------------------------------------------------------------------------------------------
 def randomizeShipPositions(shiplist, gamegrid):
     """Select random locations on the game grid for the battleships ensuring no ships are adjacent."""
     placedShips = []
@@ -740,6 +700,7 @@ def randomizeShipPositions(shiplist, gamegrid):
             if not checkBufferZoneCollisions(ship, placedShips):
                 validPosition = True
         placedShips.append(ship)
+
 
 def checkBufferZoneCollisions(ship, shiplist):
     """Check if a ship is too close to any other ships, including adjacent cells."""
@@ -788,19 +749,67 @@ def shipLabelMaker(msg):
     textMessage = pygame.transform.rotate(textMessage, 90)
     return textMessage
 
+# ------------------------------------------------------------------------------------------------------
+# ------------------------------------- Экраны ----------------------------------
+# ------------------------------------------------------------------------------------------------------
 
-def mainMenuScreen(window):
-    window.fill((0, 0, 0))
-    window.blit(MAINMENUIMAGE, (0, 0))
-
+# -------------------------------------Начальный экран-------------------------------------
+def startScreen(window):
+    window.fill((255, 255, 255))
+    window.blit(BACKGROUND, (0, 0))
     for button in BUTTONS:
-        if button.name in ['Easy Computer', 'Hard Computer']:
+        if button.name in ['Создать профиль', 'Начать игру']:
             button.active = True
             button.draw(window)
         else:
             button.active = False
 
 
+# -------------------------------------Регистрация-------------------------------------
+def registrationScreen(window):
+    window.fill((255, 255, 255))
+    radius = 100
+    login = ''
+    font = pygame.font.Font(None, 28)
+
+    # Круг для аватарки
+    pygame.draw.circle(window, (0, 0, 0), (SCREENWIDTH/2, radius*2), radius)
+    # Поле ввода логина
+    text_surface = font.render(login, True, (0,0,0))
+    window.blit(text_surface, (SCREENWIDTH/2 - radius,  radius*3 + 50))
+
+    for button in BUTTONS:
+        if button.name in ['null', 'Сохранить профиль']:
+            button.active = True
+            button.draw(window)
+        else:
+            button.active = False
+    pygame.display.update()
+
+    # running = True
+    # while True:
+    #     for event in pygame.event.get():
+    #         if event.type == QUIT:
+    #             running = False
+    #         elif event.type == pygame.KEYDOWN:
+    #             login += event.unicode
+
+
+
+# -------------------------------------Выбор уровня противника-------------------------------------
+def mainMenuScreen(window):
+    window.fill((255, 255, 255))
+    window.blit(MAINMENUIMAGE, (0, 0))
+
+    for button in BUTTONS:
+        if button.name in ['Легкий', 'Сложный']:
+            button.active = True
+            button.draw(window)
+        else:
+            button.active = False
+
+
+# -------------------------------------Игра-------------------------------------
 def deploymentScreen(window):
     window.fill((255, 255, 255))
     window.blit(PGAMEGRIDIMG, (CELLSIZE*3, 110))
@@ -835,14 +844,14 @@ def deploymentScreen(window):
     updateGameLogic(pGameGrid, pFleet, pGameLogic)
     updateGameLogic(cGameGrid, cFleet, cGameLogic)
 
-
+# -------------------------------------Конец игры-------------------------------------
 def endScreen(window):
     window.fill((0, 0, 0))
 
     window.blit(ENDSCREENIMAGE, (0, 0))
 
     for button in BUTTONS:
-        if button.name in ['Easy Computer', 'Hard Computer', 'Quit']:
+        if button.name in ['Легкий', 'Сложный', 'Quit']:
             button.active = True
             button.draw(window)
         else:
@@ -850,7 +859,11 @@ def endScreen(window):
 
 
 def updateGameScreen(window, GAMESTATE):
-    if GAMESTATE == 'Main Menu':
+    if GAMESTATE == 'Start Menu':
+        startScreen(window)
+    elif GAMESTATE == 'Registration':
+        registrationScreen(window)
+    elif GAMESTATE == 'Main Menu':
         mainMenuScreen(window)
     elif GAMESTATE == 'Deployment':
         deploymentScreen(window)
@@ -871,7 +884,7 @@ SCANNER = False
 INDNUM = 0
 BLIPPOSITION = None
 TURNTIMER = pygame.time.get_ticks()
-GAMESTATE = 'Main Menu'
+GAMESTATE = 'Start Menu'
 
 
 #  Colors
@@ -895,7 +908,7 @@ FLEET = {
     'one3': ['one3', 'assets/images/ships/one.png', (CELLSIZE*10, 470), (CELLSIZE, CELLSIZE)],
     'one4': ['one4', 'assets/images/ships/one.png', (CELLSIZE*10, 470), (CELLSIZE, CELLSIZE)],
 }
-STAGE = ['Main Menu', 'Deployment', 'Game Over']
+STAGE = ['Start Menu', 'Registration','Main Menu', 'Deployment', 'Game Over']
 
 #  Loading Game Variables
 pGameGrid = createGameGrid(ROWS, COLS, CELLSIZE, (CELLSIZE*4, 110 + CELLSIZE))
@@ -914,20 +927,29 @@ printGameLogic()
 
 #  Loading Game Sounds and Images
 MAINMENUIMAGE = loadImage('assets/images/background/Battleship.jpg', (SCREENWIDTH // 3 * 2, SCREENHEIGHT))
-ENDSCREENIMAGE = loadImage('assets/images/background/Carrier.jpg', (SCREENWIDTH, SCREENHEIGHT))
-# BACKGROUND = loadImage('assets/images/background/gamebg.png', (SCREENWIDTH, SCREENHEIGHT))
+ENDSCREENIMAGE = loadImage('assets/images/background/Battleship.jpg', (SCREENWIDTH, SCREENHEIGHT))
+BACKGROUND = loadImage('assets/images/background/bg1.png', (SCREENWIDTH, SCREENHEIGHT))
 PGAMEGRIDIMG = loadImage('assets/images/grids/grid.png', ((ROWS + 1) * CELLSIZE, (COLS + 1) * CELLSIZE))
 CGAMEGRIDIMG = loadImage('assets/images/grids/grid.png', ((ROWS + 1) * CELLSIZE, (COLS + 1) * CELLSIZE))
-BUTTONIMAGE = loadImage('assets/images/buttons/button.png', (90, 30))
-BUTTONIMAGE1 = loadImage('assets/images/buttons/button.png', (200, 60))
+BUTTONIMAGE = loadImage('assets/images/buttons/button.png', (90, 40))
+BUTTONIMAGE1 = loadImage('assets/images/buttons/button.png', (200, 50))
+BUTTONADD = loadImage('assets/images/buttons/add_btn.png', (40, 40))
+
 BUTTONS = [
-    Button(BUTTONIMAGE, (90, 30), (500, 500), 'Случайная'),
-    Button(BUTTONIMAGE, (90, 30), (600, 500), 'Сбросить'),
-    Button(BUTTONIMAGE, (90, 30), (700, 500), 'Играть'),
-    Button(BUTTONIMAGE, (90, 30), (500, 550), 'Сохранить'),
-    Button(BUTTONIMAGE, (90, 30), (600, 550), 'Загрузить'),
-    Button(BUTTONIMAGE1, (250, 100), (700, SCREENHEIGHT // 2 - 150), 'Easy Computer'),
-    Button(BUTTONIMAGE1, (250, 100), (700, SCREENHEIGHT // 2 + 150), 'Hard Computer')
+    Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 - 40), 'Создать профиль'),
+    Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 + 100), 'Начать игру'),
+    
+    Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT - 150), 'Сохранить профиль'),
+    Button(BUTTONADD, (40, 40), (SCREENWIDTH/2 + 50, 250), 'null'),
+
+    Button(BUTTONIMAGE, (90, 40), (500, 500), 'Случайная'),
+    Button(BUTTONIMAGE, (90, 40), (600, 500), 'Сбросить'),
+    Button(BUTTONIMAGE, (90, 40), (700, 500), 'Играть'),
+    Button(BUTTONIMAGE, (90, 40), (500, 550), 'Сохранить'),
+    Button(BUTTONIMAGE, (90, 40), (600, 550), 'Загрузить'),
+
+    Button(BUTTONIMAGE1, (200, 40), (700, SCREENHEIGHT // 2 - 150), 'Легкий'),
+    Button(BUTTONIMAGE1, (200, 40), (700, SCREENHEIGHT // 2 + 150), 'Сложный')
 ]
 REDTOKEN = loadImage('assets/images/tokens/redtoken.png', (CELLSIZE, CELLSIZE))
 GREENTOKEN = loadImage('assets/images/tokens/greentoken.png', (CELLSIZE, CELLSIZE))
@@ -953,11 +975,19 @@ player1 = Player()
 computer = EasyComputer()
 
 # #  Main Game Loop
+login = ''
 RUNGAME = True
 while RUNGAME:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             RUNGAME = False
+
+# Пыталась считать логин
+        elif GAMESTATE == 'Registration' and event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_BACKSPACE:
+                player1.login = login[:-1]
+            else:
+                player1.login += event.unicode
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
@@ -979,19 +1009,19 @@ while RUNGAME:
 
                 for button in BUTTONS:
                     if button.rect.collidepoint(pygame.mouse.get_pos()):
-                        if button.name == 'Играть' and button.active == True:
+                        if button.name == 'Начать игру' and button.active == True:
+                            GAMESTATE = STAGE[2]
+                        elif button.name == 'Создать профиль' and button.active == True:
+                            GAMESTATE = STAGE[1]
+                        elif button.name == 'Играть' and button.active == True:
                             status = deploymentPhase(DEPLOYMENT)
                             DEPLOYMENT = status
-                        # elif button.name == 'Redeploy' and button.active == True:
-                        #     status = deploymentPhase(DEPLOYMENT)
-                        #     DEPLOYMENT = status
                         elif button.name == 'Выйти' and button.active == True:
                             RUNGAME = False
-                        elif (button.name == 'Easy Computer' or button.name == 'Hard Computer') and button.active == True:
-                            if button.name == 'Easy Computer':
+                        elif (button.name == 'Легкий' or button.name == 'Сложный') and button.active == True:
+                            if button.name == 'Легкий':
                                 computer = EasyComputer()
-
-                            elif button.name == 'Hard Computer':
+                            elif button.name == 'Сложный':
                                 computer = HardComputer()
                             if GAMESTATE == 'Game Over':
                                 TOKENS.clear()
@@ -1004,7 +1034,7 @@ while RUNGAME:
                                 updateGameLogic(cGameGrid, cFleet, cGameLogic)
                                 status = deploymentPhase(DEPLOYMENT)
                                 DEPLOYMENT = status
-                            GAMESTATE = STAGE[1]
+                            GAMESTATE = STAGE[3]
                         button.actionOnPress()
 
 
