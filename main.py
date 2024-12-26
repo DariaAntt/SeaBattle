@@ -1,6 +1,8 @@
 #  Module Imports
 import pygame
 import random
+import json
+from tkinter import Tk, filedialog
 
 
 #  Module Initialization
@@ -48,25 +50,57 @@ class Ship:
                         self.rotateShip()
 
 
-    def rotateShip(self, doRotation=False):
-        """switch ship between vertical and horizontal"""
-        if self.active or doRotation == True:
-            if self.rotation == False:
-                self.rotation = True
-            else:
-                self.rotation = False
+    def rotateShip(self, doRotation=False):       
+        """Поворачивает корабль между вертикальным и горизонтальным положением."""
+        if self.active or doRotation:
+            # Переключаем флаг ориентации
+            self.rotation = not self.rotation
+
+            # Переключаем изображение и прямоугольник
             self.switchImageAndRect()
+
+            # Перемещаем текущий прямоугольник в его положение
+            self.rect.topleft = self.rect.topleft
+
+            # Синхронизируем прямоугольники с новым положением
+            self.hImageRect.topleft = self.rect.topleft
+            self.vImageRect.topleft = self.rect.topleft
+
+            # Отладка
+            print(f"Корабль '{self.name}' повернут. Новая ориентация: {'горизонтальная' if self.rotation else 'вертикальная'}.")
+        # """switch ship between vertical and horizontal"""
+        # if self.active or doRotation == True:
+        #     if self.rotation == False:
+        #         self.rotation = True
+        #     else:
+        #         self.rotation = False
+        #     self.switchImageAndRect()
 
 
     def switchImageAndRect(self):
-        """Switches from Horizontal to Vertical and vice versa"""
-        if self.rotation == True:
+        """Переключает изображения и прямоугольники между горизонтальным и вертикальным положением."""
+        if self.rotation:  # Горизонтальная ориентация
             self.image = self.hImage
             self.rect = self.hImageRect
-        else:
+        else:  # Вертикальная ориентация
             self.image = self.vImage
             self.rect = self.vImageRect
-        self.hImageRect.center = self.vImageRect.center = self.rect.center
+
+        # Обновляем центр прямоугольников
+        self.hImageRect.center = self.rect.center
+        self.vImageRect.center = self.rect.center
+
+        # Отладка
+        print(f"Синхронизация изображения и прямоугольников завершена для '{self.name}'.")
+
+        # """Switches from Horizontal to Vertical and vice versa"""
+        # if self.rotation == True:
+        #     self.image = self.hImage
+        #     self.rect = self.hImageRect
+        # else:
+        #     self.image = self.vImage
+        #     self.rect = self.vImageRect
+        # self.hImageRect.center = self.vImageRect.center = self.rect.center
 
 
     def checkForCollisions(self, shiplist):
@@ -90,17 +124,20 @@ class Ship:
 
 
     def checkForRotateCollisions(self, shiplist):
-        """Check to make sure the ship is not going to collide with any other ship before rotating"""
+        """Проверяет, не будет ли столкновений при повороте корабля."""
+        # Список всех кораблей, кроме текущего
         slist = shiplist.copy()
         slist.remove(self)
-        # Предполагаемое новое положение после поворота
+
+        # Предполагаемый новый прямоугольник после поворота
         new_rect = self.hImageRect if not self.rotation else self.vImageRect
+
         for ship in slist:
             # Проверка прямого столкновения
             if new_rect.colliderect(ship.rect):
                 return True
-            
-            # Проверка буферной зоны (расстояние 1 клетка)
+
+            # Проверка буферной зоны (расстояние в одну клетку)
             buffer_zone = pygame.Rect(
                 ship.rect.left - CELLSIZE,
                 ship.rect.top - CELLSIZE,
@@ -109,7 +146,28 @@ class Ship:
             )
             if buffer_zone.colliderect(new_rect):
                 return True
+
         return False
+        # """Check to make sure the ship is not going to collide with any other ship before rotating"""
+        # slist = shiplist.copy()
+        # slist.remove(self)
+        # # Предполагаемое новое положение после поворота
+        # new_rect = self.hImageRect if not self.rotation else self.vImageRect
+        # for ship in slist:
+        #     # Проверка прямого столкновения
+        #     if new_rect.colliderect(ship.rect):
+        #         return True
+            
+        #     # Проверка буферной зоны (расстояние 1 клетка)
+        #     buffer_zone = pygame.Rect(
+        #         ship.rect.left - CELLSIZE,
+        #         ship.rect.top - CELLSIZE,
+        #         ship.rect.width + 2 * CELLSIZE,
+        #         ship.rect.height + 2 * CELLSIZE
+        #     )
+        #     if buffer_zone.colliderect(new_rect):
+        #         return True
+        # return False
 
 
     def returnToDefaultPosition(self):
@@ -200,10 +258,13 @@ class Button:
                 self.resetShips(pFleet)
             elif self.name == 'Играть':
                 self.deploymentPhase()
+            elif self.name == 'Сохранить':
+                save_fleet_to_file(pFleet)
+            elif self.name == 'Загрузить':
+                load_fleet_from_file(pFleet)
             elif self.name == 'Выйти':
                 pass
-            elif self.name == 'Redeploy':
-                self.restartTheGame()
+
 
 
     def randomizeShipPositions(self, shiplist, gameGrid):
@@ -234,9 +295,9 @@ class Button:
     def updateButtons(self, gameStatus):
         """update the buttons as per the game stage"""
         if self.name == 'Играть' and gameStatus == False:
-            self.name = 'Redeploy'
-        elif self.name == 'Redeploy' and gameStatus == True:
-            self.name = 'Играть'
+            self.name = ''
+        # elif self.name == 'Redeploy' and gameStatus == True:
+        #     self.name = 'Играть'
         # if self.name == 'Сбросить' and gameStatus == False:
         #     self.name = 'Radar Scan'
         if self.name == 'Случайная' and gameStatus == False:
@@ -252,6 +313,96 @@ class Button:
         self.focusOnButton(window)
         window.blit(self.msg, self.msgRect)
 
+
+# ------------------------------------------------------------------------------------------------------
+# ------------------------------------- СОХРАНЕНИЕ РАССТАНОВКИ В ФАЙЛ ----------------------------------
+# ------------------------------------------------------------------------------------------------------
+def save_fleet_to_file(fleet):
+    """Открывает окно сохранения файла и сохраняет текущую расстановку кораблей."""
+    root = Tk()
+    root.withdraw()  # Скрыть главное окно Tkinter
+    filename = filedialog.asksaveasfilename(
+        defaultextension=".sb",
+        filetypes=[("Ship Battle files", "*.sb"), ("All files", "*.*")],
+        title="Сохранить расстановку кораблей"
+    )
+    if filename:
+        data = {}
+        for ship in fleet:
+            data[ship.name] = {
+                "position": ship.rect.topleft,
+                "rotation": ship.rotation
+            }
+        with open(filename, 'w') as f:
+            json.dump(data, f)
+
+
+def load_fleet_from_file(fleet):
+    """Открывает окно выбора файла и загружает расстановку кораблей."""
+    root = Tk()
+    root.withdraw()  # Скрыть главное окно Tkinter
+    filename = filedialog.askopenfilename(
+        filetypes=[("Ship Battle files", "*.sb"), ("All files", "*.*")],
+        title="Загрузить расстановку кораблей"
+    )
+    if filename:
+        with open(filename, 'r') as f:
+            data = json.load(f)
+
+        for ship in fleet:
+            if ship.name in data:
+                # Устанавливаем позицию
+                ship.rect.topleft = tuple(data[ship.name]["position"])
+
+                # Устанавливаем ориентацию
+                if data[ship.name]["rotation"] != ship.rotation:
+                    ship.rotation = data[ship.name]["rotation"]
+                    ship.switchImageAndRect()
+
+                # Синхронизация прямоугольников
+                ship.hImageRect.topleft = ship.rect.topleft
+                ship.vImageRect.topleft = ship.rect.topleft
+
+                # Перемещаем изображение в правильное положение
+                ship.rect = ship.hImageRect if ship.rotation else ship.vImageRect
+                ship.rect.topleft = tuple(data[ship.name]["position"])
+
+                # Отладка
+                print(f"Корабль '{ship.name}' загружен: позиция={ship.rect.topleft}, ориентация={'горизонтальная' if ship.rotation else 'вертикальная'}.")
+            else:
+                # Если данные отсутствуют, возвращаем корабль в начальное положение
+                print(f"Корабль '{ship.name}' отсутствует в данных. Возвращён в начальное положение.")
+                ship.returnToDefaultPosition()
+    # root = Tk()
+    # root.withdraw()  # Скрыть главное окно Tkinter
+    # filename = filedialog.askopenfilename(
+    #     filetypes=[("Ship Battle files", "*.sb"), ("All files", "*.*")],
+    #     title="Загрузить расстановку кораблей"
+    # )
+    # if filename:
+    #     with open(filename, 'r') as f:
+    #         data = json.load(f)
+
+    #     for ship in fleet:
+    #         if ship.name in data:
+    #             # Загружаем позицию
+    #             ship.rect.topleft = tuple(data[ship.name]["position"])
+
+    #             # Устанавливаем ориентацию, если она не совпадает
+    #             if data[ship.name]["rotation"] != ship.rotation:
+    #                 ship.rotateShip(doRotation=True)
+
+    #             # Обновляем прямоугольники
+    #             ship.switchImageAndRect()
+    #             ship.hImageRect.topleft = ship.rect.topleft
+    #             ship.vImageRect.topleft = ship.rect.topleft
+    #         else:
+    #             # Если корабля нет в файле, возвращаем его в исходное положение
+    #             print(f"Корабль '{ship.name}' отсутствует в файле. Возвращен в исходное положение.")
+    #             ship.returnToDefaultPosition()
+
+# ------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------------
 
 class Player:
     def __init__(self):
@@ -455,8 +606,6 @@ class Tokens:
 #  Game Utility Functions
 def createGameGrid(rows, cols, cellsize, pos):
     """Creates a game grid with coordinates for each cell"""
-    # startX = pos[0]-CELLSIZE*2
-    # startY = pos[1]+CELLSIZE*4
     startX = pos[0]
     startY = pos[1]
     coordGrid = []
@@ -656,8 +805,6 @@ def deploymentScreen(window):
     window.fill((255, 255, 255))
     window.blit(PGAMEGRIDIMG, (CELLSIZE*3, 110))
     window.blit(CGAMEGRIDIMG, (SCREENWIDTH - (ROWS * CELLSIZE) - CELLSIZE*4, 110))
-    # window.blit(PGAMEGRIDIMG, (0, 0))
-    # window.blit(CGAMEGRIDIMG, (cGameGrid[0][0][0] - CELLSIZE, cGameGrid[0][0][1] - CELLSIZE))
 
     #  Draws the player and computer grids to the screen
     # showGridOnScreen(window, CELLSIZE, pGameGrid, cGameGrid)
@@ -674,7 +821,7 @@ def deploymentScreen(window):
         ship.snapToGrid(cGameGrid)
 
     for button in BUTTONS:
-        if button.name in ['Случайная', 'Сбросить', 'Играть', 'Выйти', 'Redeploy']:
+        if button.name in ['Случайная', 'Сбросить', 'Играть', 'Выйти', 'Сохранить', 'Загрузить']:
             button.active = True
             button.draw(window)
         else:
@@ -777,6 +924,8 @@ BUTTONS = [
     Button(BUTTONIMAGE, (90, 30), (500, 500), 'Случайная'),
     Button(BUTTONIMAGE, (90, 30), (600, 500), 'Сбросить'),
     Button(BUTTONIMAGE, (90, 30), (700, 500), 'Играть'),
+    Button(BUTTONIMAGE, (90, 30), (500, 550), 'Сохранить'),
+    Button(BUTTONIMAGE, (90, 30), (600, 550), 'Загрузить'),
     Button(BUTTONIMAGE1, (250, 100), (700, SCREENHEIGHT // 2 - 150), 'Easy Computer'),
     Button(BUTTONIMAGE1, (250, 100), (700, SCREENHEIGHT // 2 + 150), 'Hard Computer')
 ]
@@ -833,9 +982,9 @@ while RUNGAME:
                         if button.name == 'Играть' and button.active == True:
                             status = deploymentPhase(DEPLOYMENT)
                             DEPLOYMENT = status
-                        elif button.name == 'Redeploy' and button.active == True:
-                            status = deploymentPhase(DEPLOYMENT)
-                            DEPLOYMENT = status
+                        # elif button.name == 'Redeploy' and button.active == True:
+                        #     status = deploymentPhase(DEPLOYMENT)
+                        #     DEPLOYMENT = status
                         elif button.name == 'Выйти' and button.active == True:
                             RUNGAME = False
                         elif (button.name == 'Easy Computer' or button.name == 'Hard Computer') and button.active == True:
