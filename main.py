@@ -766,7 +766,8 @@ def registrationScreen(window):
     login = player1.login
     login_active = False
     error_message = ''  # Сообщение об ошибке
-    error_font = pygame.font.Font(None, 22)
+    create_error_message = ''
+    error_font = pygame.font.Font(None, 24)
 
     radius = 100
     font = pygame.font.Font(None, 28)
@@ -798,7 +799,18 @@ def registrationScreen(window):
                             GAMESTATE = STAGE[2]
                             return
                         if button.name == 'Сохранить профиль' and button.active == True:
-                            pass
+                            if (not player1.avatar) and (not player1.login):
+                                create_error_message = "Выберите аватар и введите логин"
+                                print(create_error_message)
+                            elif not player1.avatar :
+                                create_error_message = "Выберите аватар"
+                                print(create_error_message)
+                            elif not player1.login:
+                                create_error_message = "Введите логин"
+                                print(create_error_message)
+                            else:
+                                create_error_message = ''
+                                pass
 
             elif event.type == pygame.KEYDOWN:
                 if login_active:
@@ -843,6 +855,10 @@ def registrationScreen(window):
         if error_message:
             error_surface = error_font.render(error_message, True, (255, 0, 0))
             window.blit(error_surface, (input_rect.x, input_rect.y + 50))
+        if create_error_message:
+            error_surface = error_font.render(create_error_message, True, (255, 0, 0))
+            window.blit(error_surface, (SCREENWIDTH/2 - len(create_error_message)/2 - 100, SCREENHEIGHT - 50))
+
 
         for button in BUTTONS:
             if button.name in ['null_add', 'Сохранить профиль']:
@@ -861,7 +877,10 @@ def selectAvatarScreen(window):
 
     # Настройки экрана
     window.fill((255, 255, 255))
-    font = pygame.font.Font(None, 28)
+    error_font = pygame.font.Font(None, 28)
+    select_font = pygame.font.Font(None, 28)
+    error = ''
+    select_message = ''
 
     # Параметры аватаров
     size = 125
@@ -908,21 +927,25 @@ def selectAvatarScreen(window):
                 for i, rect in enumerate(avatar_rects):
                     if rect.collidepoint(event.pos):
                         selected_avatar_index = i
+                        error = ''
+                        select_message = 'Выбран аватар ' + str(i + 1)
                         break
                      
                 for button in BUTTONS:
                     if button.rect.collidepoint(pygame.mouse.get_pos()):
                         if button.name == 'Выбрать' and button.active == True:
-                            if selectAvatarScreen is not None:
+                            if selected_avatar_index is not None:
                                 # Сохранение пути к аватару
                                 player1.avatar = avatar_paths[selected_avatar_index]
                                 global GAMESTATE
                                 GAMESTATE = 'Registration'
                                 return
+                            else:
+                                select_message = ''
+                                error = 'Выберите аватар'
 
-
-        # Отрисовка аватаров
-        window.fill((255, 255, 255))
+         # Отрисовка аватаров
+        window.fill((255, 255, 255))  # Очистка экрана
         for i, avatar in enumerate(avatars):
             # Подсветка при наведении
             if hovered_avatar_index == i:
@@ -931,8 +954,15 @@ def selectAvatarScreen(window):
             elif selected_avatar_index == i:
                 pygame.draw.rect(window, (255, 0, 0), avatar_rects[i], 5)  # Красная рамка
             window.blit(avatar, avatar_rects[i].topleft)
-        for i, avatar in enumerate(avatars):
-            window.blit(avatar, avatar_rects[i].topleft)
+
+        # Отображение сообщения об ошибке (если есть)
+        if error:
+            error_surface = error_font.render(error, True, (255, 0, 0))
+            window.blit(error_surface, (SCREENWIDTH/2 - 80, SCREENHEIGHT - 50))
+        if select_message:
+            select_surface = select_font.render( select_message, True, (0, 255, 0))
+            window.blit(select_surface, (SCREENWIDTH/2 - 80, SCREENHEIGHT - 50))
+
 
         # Отрисовка кнопки "Выбрать"
         for button in BUTTONS:
