@@ -750,14 +750,34 @@ def checkForWinners(grid):
 
 # ----------------------------------Начальный экран------------------------------
 def startScreen(window):
+    global GAMESTATE
+
+    global PREV_GAMESTATE
+    PREV_GAMESTATE = GAMESTATE
+
     window.fill((255, 255, 255))
     window.blit(BACKGROUND, (0, 0))
     for button in BUTTONS:
-        if button.name in ['Создать профиль', 'Начать игру']:
+        if button.name in ['Создать профиль', 'Начать игру', 'Руководство приложения', 'Информация о разработчиках']:
             button.active = True
             button.draw(window)
         else:
             button.active = False
+
+    # running = True
+    # while running:    
+    #     for event in pygame.event.get():
+    #         if event.type == QUIT:
+    #             running = False
+    #             pygame.quit()
+    #             sys.exit()
+    #         elif event.type == MOUSEBUTTONDOWN:
+    #             for button in BUTTONS:
+    #                 if button.rect.collidepoint(pygame.mouse.get_pos()):
+    #                     if button.name == 'Информация о разработчиках' and button.active == True:
+    #                         GAMESTATE = 'Developers Info'
+    #                         return
+
 
 
 # -----------------------------------Регистрация----------------------------------
@@ -799,7 +819,13 @@ def registrationScreen(window):
                             GAMESTATE = STAGE[2]
                             return
                         if button.name == 'Сохранить профиль' and button.active == True:
-                            if (not player1.avatar) and (not player1.login):
+                            if player1.avatar and player1.login:
+                                create_error_message = ''
+                                # global GAMESTATE
+                                GAMESTATE = 'Start Menu'
+                                print("Профиль создан")
+                                return
+                            elif (not player1.avatar) and (not player1.login):
                                 create_error_message = "Выберите аватар и введите логин"
                                 print(create_error_message)
                             elif not player1.avatar :
@@ -808,9 +834,11 @@ def registrationScreen(window):
                             elif not player1.login:
                                 create_error_message = "Введите логин"
                                 print(create_error_message)
-                            else:
-                                create_error_message = ''
-                                pass
+                            # else:
+                            #     create_error_message = ''
+                            #     global GAMESTATE
+                            #     GAMESTATE == 'Start Menu'
+                            #     return
 
             elif event.type == pygame.KEYDOWN:
                 if login_active:
@@ -870,8 +898,7 @@ def registrationScreen(window):
         pygame.time.Clock().tick(60)
 
 
-
-# -----------------------------------Выбор аватара----------------------------------
+# -----------------------------------Выбор аватара--------------------------------
 def selectAvatarScreen(window):
     global GAMESTATE  # Для изменения состояния игры и возвращения на экран регистрации
 
@@ -976,8 +1003,7 @@ def selectAvatarScreen(window):
         pygame.time.Clock().tick(60)
 
 
-
-# -------------------------------------Выбор уровня противника-------------------------------------
+# -----------------------------------Выбор уровня противника----------------------
 def mainMenuScreen(window):
     window.fill((255, 255, 255))
     window.blit(MAINMENUIMAGE, (0, 0))
@@ -990,7 +1016,7 @@ def mainMenuScreen(window):
             button.active = False
 
 
-# -------------------------------------Игра-------------------------------------
+# -----------------------------------Игра-----------------------------------------
 def deploymentScreen(window):
     window.fill((255, 255, 255))
     window.blit(PGAMEGRIDIMG, (CELLSIZE*3, 110))
@@ -1025,7 +1051,7 @@ def deploymentScreen(window):
     updateGameLogic(pGameGrid, pFleet, pGameLogic)
     updateGameLogic(cGameGrid, cFleet, cGameLogic)
 
-# -------------------------------------Конец игры-------------------------------------
+# -----------------------------------Конец игры-----------------------------------
 def endScreen(window):
     window.fill((0, 0, 0))
 
@@ -1037,6 +1063,59 @@ def endScreen(window):
             button.draw(window)
         else:
             button.active = False
+
+
+# -----------------------------------Сведения о разработчиках--------------------
+def developersInfoScreen(window, game_stage):
+    window.fill((255, 255, 255))  # Белый фон
+
+    # Отображение заголовка
+    title_font = pygame.font.SysFont('Arial', 28, bold=True)
+    title = title_font.render("Информация о разработчиках", True, (0, 0, 0))
+    window.blit(title, (SCREENWIDTH // 2 - title.get_width() // 2, 20))
+
+    # Основной текст
+    text_font = pygame.font.SysFont('Arial', 22)
+    info = [
+        "Самарский университет",
+        "Кафедра программных систем",
+        "",
+        "Курсовой проект по дисциплине «Программная инженерия»",
+        "Курсовой проект: «Игра «Морской бой»",
+        "",
+        "Разработчики обучающиеся группы 6402-020302D:",
+        "                            Александрова Ольга Евгеньевна",
+        "                                  Антипова Дарья Анатольевна",
+        "                  Григорьева Анастасия Константиновна",
+        "",
+        "Руководитель:              Зеленко Лариса Сергеевна",
+        "",
+        "",
+        "",
+        "Самара, 2024"
+    ]
+    y_offset = 70
+    for line in info:
+        text = text_font.render(line, True, (0, 0, 0))
+        window.blit(text, (SCREENWIDTH // 2 - text.get_width() // 2, y_offset))
+        y_offset += 30
+
+    # Обновление экрана
+    pygame.display.flip()
+
+    # Обработка событий
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+                running = False
+                global GAMESTATE
+                GAMESTATE = game_stage
+                return
+
+                
+
+
 
 
 def updateGameScreen(window, GAMESTATE):
@@ -1052,6 +1131,8 @@ def updateGameScreen(window, GAMESTATE):
         deploymentScreen(window)
     elif GAMESTATE == 'Game Over':
         endScreen(window)
+    elif GAMESTATE == 'Developers Info':
+        developersInfoScreen(window, PREV_GAMESTATE)
     pygame.display.update()
 
 
@@ -1067,6 +1148,7 @@ INDNUM = 0
 BLIPPOSITION = None
 TURNTIMER = pygame.time.get_ticks()
 GAMESTATE = 'Start Menu'
+PREV_GAMESTATE = ''
 
 
 #  Colors
@@ -1090,7 +1172,7 @@ FLEET = {
     'one3': ['one3', 'assets/images/ships/one.png', (CELLSIZE*10, 470), (CELLSIZE, CELLSIZE)],
     'one4': ['one4', 'assets/images/ships/one.png', (CELLSIZE*10, 470), (CELLSIZE, CELLSIZE)],
 }
-STAGE = ['Start Menu', 'Registration', 'Select Avatar','Main Menu', 'Deployment', 'Game Over']
+STAGE = ['Start Menu', 'Registration', 'Select Avatar','Main Menu', 'Deployment', 'Game Over', 'Developers Info']
 
 #  Loading Game Variables
 pGameGrid = createGameGrid(ROWS, COLS, CELLSIZE, (CELLSIZE*4, 110 + CELLSIZE))
@@ -1115,9 +1197,13 @@ PGAMEGRIDIMG = loadImage('assets/images/grids/grid.png', ((ROWS + 1) * CELLSIZE,
 CGAMEGRIDIMG = loadImage('assets/images/grids/grid.png', ((ROWS + 1) * CELLSIZE, (COLS + 1) * CELLSIZE))
 BUTTONIMAGE = loadImage('assets/images/buttons/button.png', (90, 40))
 BUTTONIMAGE1 = loadImage('assets/images/buttons/button.png', (200, 50))
+BUTTONIMAGEIINFO = loadImage('assets/images/buttons/button.png', (300, 50))
 BUTTONADD = loadImage('assets/images/buttons/add_btn.png', (40, 40))
 
 BUTTONS = [
+    Button(BUTTONIMAGEIINFO, (300, 50), (20, 20), 'Руководство приложения'),
+    Button(BUTTONIMAGEIINFO, (300, 50), (SCREENWIDTH - 320, 20), 'Информация о разработчиках'),
+    
     Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 - 40), 'Создать профиль'),
     Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 + 100), 'Начать игру'),
     
@@ -1188,6 +1274,8 @@ while RUNGAME:
                             GAMESTATE = STAGE[1]
                         # elif button.name == 'null_add' and button.active == True:
                         #     GAMESTATE = STAGE[2]
+                        elif button.name == 'Информация о разработчиках' and button.active == True:
+                            GAMESTATE = 'Developers Info'
                         elif button.name == 'Начать игру' and button.active == True:
                             GAMESTATE = STAGE[3]
                         elif button.name == 'Играть' and button.active == True:
