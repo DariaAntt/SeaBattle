@@ -187,7 +187,7 @@ class Ship:
     def draw(self, window):
         """Draw the ship to the screen"""
         window.blit(self.image, self.rect)
-        #pygame.draw.rect(window, (255, 0, 0), self.rect, 1)
+        #pygame.draw.rect(window, ERROR_COLOR, self.rect, 1)
 
 
 
@@ -272,9 +272,13 @@ class Button:
         if self.name == 'Играть' and gameStatus == False:
             self.name = ''
         if self.name == 'Случайная' and gameStatus == False:
-            self.name = 'Выйти'
-        elif self.name == 'Выйти' and gameStatus == True:
-            self.name = 'Случайная'
+            self.name = ''
+        if self.name == 'Сохранить' and gameStatus == False:
+            self.name = ''
+        if self.name == 'Загрузить' and gameStatus == False:
+            self.name = ''
+        # if self.name == 'Выйти' and gameStatus == True:
+        #     self.name = 'Сбросить'
         self.msg = self.addText(self.name)
         self.msgRect = self.msg.get_rect(center=self.rect.center)
 
@@ -382,13 +386,13 @@ class Player:
 class EasyComputer:
     def __init__(self):
         self.turn = False
-        self.status = self.computerStatus('Ход противника. Думает...  -.-')
+        self.status = self.computerStatus('Ход противника. Думает...')
         self.name = 'Легкий'
 
 
     def computerStatus(self, msg):
-        image = pygame.font.SysFont('Stencil', 22)
-        message = image.render(msg, 1, (0, 0, 0))
+        image = pygame.font.SysFont('Arial', 24)
+        message = image.render(msg, 1, (65, 105, 225))
         return message
 
 
@@ -755,6 +759,9 @@ def startScreen(window):
     global PREV_GAMESTATE
     PREV_GAMESTATE = GAMESTATE
 
+    font = pygame.font.Font(None, 28)
+    error_message = ""
+
     window.fill((255, 255, 255))
     window.blit(BACKGROUND, (0, 0))
     for button in BUTTONS:
@@ -763,21 +770,42 @@ def startScreen(window):
             button.draw(window)
         else:
             button.active = False
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                running = False
+                pygame.quit()
+                sys.exit()
+            elif event.type == MOUSEBUTTONDOWN:
+                for button in BUTTONS:
+                    if button.rect.collidepoint(pygame.mouse.get_pos()):
+                        if button.name == 'Создать профиль' and button.active == True:
+                            GAMESTATE = 'Registration'
+                            return
+                        elif button.name == 'Начать игру' and button.active == True:
+                            if not player1.login or not player1.avatar:
+                                error_message = "Чтобы начать игру, необходимо создать профиль."
+                            else:
+                                GAMESTATE = 'Main Menu'
+                                return
+                        elif button.name == 'Информация о разработчиках' and button.active == True:
+                            GAMESTATE = 'Developers Info'
+                            return
 
-    # running = True
-    # while running:    
-    #     for event in pygame.event.get():
-    #         if event.type == QUIT:
-    #             running = False
-    #             pygame.quit()
-    #             sys.exit()
-    #         elif event.type == MOUSEBUTTONDOWN:
-    #             for button in BUTTONS:
-    #                 if button.rect.collidepoint(pygame.mouse.get_pos()):
-    #                     if button.name == 'Информация о разработчиках' and button.active == True:
-    #                         GAMESTATE = 'Developers Info'
-    #                         return
+        # Отображение сообщения об ошибке
+        window.fill((255, 255, 255))  # Очистка экрана
+        window.blit(BACKGROUND, (0, 0))
+        for button in BUTTONS:
+            if button.name in ['Создать профиль', 'Начать игру', 'Руководство приложения', 'Информация о разработчиках']:
+                button.draw(window)
 
+        if error_message:
+            error_surface = font.render(error_message, True, ERROR_COLOR)
+            window.blit(error_surface, (SCREENWIDTH // 2 - error_surface.get_width() // 2, SCREENHEIGHT - 50))
+
+        pygame.display.flip()
+        pygame.time.Clock().tick(60)
 
 
 # -----------------------------------Регистрация----------------------------------
@@ -792,7 +820,7 @@ def registrationScreen(window):
     radius = 100
     font = pygame.font.Font(None, 28)
     input_rect = pygame.Rect(SCREENWIDTH / 2 - 100, radius * 3 + 50, 200, 40)
-    color_active = pygame.Color('#87CEFA')
+    color_active = pygame.Color('#93BFCD')
     color_inactive = pygame.Color('black')
     color = color_inactive
 
@@ -862,7 +890,7 @@ def registrationScreen(window):
         pygame.draw.rect(window, color, input_rect, 2, 5)
 
         # Отрисовка аватара
-        pygame.draw.circle(window, (0, 0, 0), (SCREENWIDTH // 2, radius * 2), radius)
+        pygame.draw.circle(window, (214, 234, 240), (SCREENWIDTH // 2, radius * 2), radius)
         if player1.avatar:  # Если аватар выбран
             avatar_image = pygame.image.load(player1.avatar).convert_alpha()
             avatar_image = pygame.transform.scale(avatar_image, (radius * 2, radius * 2))
@@ -881,11 +909,11 @@ def registrationScreen(window):
 
         # Отображение сообщения об ошибке (если есть)
         if error_message:
-            error_surface = error_font.render(error_message, True, (255, 0, 0))
-            window.blit(error_surface, (input_rect.x, input_rect.y + 50))
+            error_surface = error_font.render(error_message, True, ERROR_COLOR)
+            window.blit(error_surface, (SCREENWIDTH/2 - error_surface.get_width()//2, input_rect.y + 50))
         if create_error_message:
-            error_surface = error_font.render(create_error_message, True, (255, 0, 0))
-            window.blit(error_surface, (SCREENWIDTH/2 - len(create_error_message)/2 - 100, SCREENHEIGHT - 50))
+            create_error_surface = error_font.render(create_error_message, True, ERROR_COLOR)
+            window.blit(create_error_surface, (SCREENWIDTH/2 - create_error_surface.get_width()//2, SCREENHEIGHT - 50))
 
 
         for button in BUTTONS:
@@ -904,8 +932,8 @@ def selectAvatarScreen(window):
 
     # Настройки экрана
     window.fill((255, 255, 255))
-    error_font = pygame.font.Font(None, 28)
-    select_font = pygame.font.Font(None, 28)
+    error_font = pygame.font.Font(None, 32)
+    select_font = pygame.font.Font(None, 32)
     error = ''
     select_message = ''
 
@@ -976,19 +1004,19 @@ def selectAvatarScreen(window):
         for i, avatar in enumerate(avatars):
             # Подсветка при наведении
             if hovered_avatar_index == i:
-                pygame.draw.rect(window, (0, 255, 0), avatar_rects[i], 5)  # Зеленая подсветка
+                pygame.draw.rect(window, MESSAGE_COLOR, avatar_rects[i], 5)  # Зеленая подсветка
             # Подсветка выбранного аватара
             elif selected_avatar_index == i:
-                pygame.draw.rect(window, (255, 0, 0), avatar_rects[i], 5)  # Красная рамка
+                pygame.draw.rect(window, ERROR_COLOR, avatar_rects[i], 5)  # Красная рамка
             window.blit(avatar, avatar_rects[i].topleft)
 
         # Отображение сообщения об ошибке (если есть)
         if error:
-            error_surface = error_font.render(error, True, (255, 0, 0))
-            window.blit(error_surface, (SCREENWIDTH/2 - 80, SCREENHEIGHT - 50))
+            error_surface = error_font.render(error, True, ERROR_COLOR)
+            window.blit(error_surface, (SCREENWIDTH/2 - error_surface.get_width()//2, 70))
         if select_message:
-            select_surface = select_font.render( select_message, True, (0, 255, 0))
-            window.blit(select_surface, (SCREENWIDTH/2 - 80, SCREENHEIGHT - 50))
+            select_surface = select_font.render( select_message, True, MESSAGE_COLOR)
+            window.blit(select_surface, (SCREENWIDTH/2 - select_surface.get_width()//2, 70))
 
 
         # Отрисовка кнопки "Выбрать"
@@ -1006,7 +1034,13 @@ def selectAvatarScreen(window):
 # -----------------------------------Выбор уровня противника----------------------
 def mainMenuScreen(window):
     window.fill((255, 255, 255))
-    window.blit(MAINMENUIMAGE, (0, 0))
+    window.blit(BACKGROUND, (0, 0))
+
+    font = pygame.font.Font(None, 38)
+    message = "Выберите уровень противника:"
+    message_surface = font.render(message, True, (0, 0, 0))
+    window.blit(message_surface, (SCREENWIDTH // 2 - message_surface.get_width() // 2, 100))
+
 
     for button in BUTTONS:
         if button.name in ['Легкий', 'Сложный']:
@@ -1019,8 +1053,35 @@ def mainMenuScreen(window):
 # -----------------------------------Игра-----------------------------------------
 def deploymentScreen(window):
     window.fill((255, 255, 255))
-    window.blit(PGAMEGRIDIMG, (CELLSIZE*3, 110))
-    window.blit(CGAMEGRIDIMG, (SCREENWIDTH - (ROWS * CELLSIZE) - CELLSIZE*4, 110))
+    window.blit(PGAMEGRIDIMG, (CELLSIZE*3, 130))
+    window.blit(CGAMEGRIDIMG, (SCREENWIDTH - (ROWS * CELLSIZE) - CELLSIZE*4, 130))
+
+    # Отображаем аватар пользователя
+    radius = 50
+    avatar_image = pygame.image.load(player1.avatar).convert_alpha()
+    avatar_image = pygame.transform.scale(avatar_image, (radius * 2, radius * 2))
+    avatar_surface = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
+    pygame.draw.circle(avatar_surface, (255, 255, 255, 255), (radius, radius), radius)
+    avatar_surface.blit(avatar_image, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
+    window.blit(avatar_surface, (CELLSIZE*7, 17))
+    # Отображаем логин пользователя
+    font = pygame.font.Font(None, 30)
+    login_surface = font.render(player1.login, True, (70, 130, 180))
+    window.blit(login_surface, (CELLSIZE*3, 130-login_surface.get_height()))
+
+    # Отображаем компьютера
+    radius = 50
+    avatar_image = pygame.image.load('assets/images/avatar_comp.png').convert_alpha()
+    avatar_image = pygame.transform.scale(avatar_image, (radius * 2, radius * 2))
+    avatar_surface = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
+    pygame.draw.circle(avatar_surface, (255, 255, 255, 255), (radius, radius), radius)
+    avatar_surface.blit(avatar_image, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
+    window.blit(avatar_surface, (SCREENWIDTH - CELLSIZE*10, 17))
+    # Отображаем логин компьютера
+    font = pygame.font.Font(None, 30)
+    login_surface = font.render('computer', True, (70, 130, 180))
+    window.blit(login_surface, (SCREENWIDTH - (ROWS * CELLSIZE) - CELLSIZE*4, 130-login_surface.get_height()))
+
 
     #  Draws the player and computer grids to the screen
     # showGridOnScreen(window, CELLSIZE, pGameGrid, cGameGrid)
@@ -1037,11 +1098,18 @@ def deploymentScreen(window):
         ship.snapToGrid(cGameGrid)
 
     for button in BUTTONS:
-        if button.name in ['Случайная', 'Сбросить', 'Играть', 'Выйти', 'Сохранить', 'Загрузить']:
-            button.active = True
-            button.draw(window)
+        if DEPLOYMENT:
+            if button.name in ['Случайная', 'Сбросить', 'Играть', 'Сохранить', 'Загрузить']:
+                button.active = True
+                button.draw(window)
+            else:
+                button.active = False
         else:
-            button.active = False
+            if button.name == 'Выйти':
+                button.active = True
+                button.draw(window)
+            else:
+                button.active = False
 
     computer.draw(window)
 
@@ -1114,10 +1182,10 @@ def developersInfoScreen(window, game_stage):
                 return
 
                 
-
-
-
-
+# --------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------
+               
 def updateGameScreen(window, GAMESTATE):
     if GAMESTATE == 'Start Menu':
         startScreen(window)
@@ -1152,6 +1220,8 @@ PREV_GAMESTATE = ''
 
 
 #  Colors
+ERROR_COLOR = '#FF0000'
+MESSAGE_COLOR = '#32CD32'
 
 
 #  Pygame Display Initialization
@@ -1161,26 +1231,26 @@ pygame.display.set_caption('Battle Ship')
 
 #  Game Lists/Dictionaries
 FLEET = {
-    'four': ['four', 'assets/images/ships/four.png', (CELLSIZE*4, 470), (CELLSIZE, CELLSIZE*4)],
-    'three1': ['three1', 'assets/images/ships/three.png', (CELLSIZE*6, 470), (CELLSIZE, CELLSIZE*3)],
-    'three2': ['three2', 'assets/images/ships/three.png', (CELLSIZE*6, 470), (CELLSIZE, CELLSIZE*3)],
-    'two1': ['two1', 'assets/images/ships/two.png', (CELLSIZE*8, 470), (CELLSIZE, CELLSIZE*2)],
-    'two2': ['two2', 'assets/images/ships/two.png', (CELLSIZE*8, 470), (CELLSIZE, CELLSIZE*2)],
-    'two3': ['two3', 'assets/images/ships/two.png', (CELLSIZE*8, 470), (CELLSIZE, CELLSIZE*2)],
-    'one1': ['one1', 'assets/images/ships/one.png', (CELLSIZE*10, 470), (CELLSIZE, CELLSIZE)],
-    'one2': ['one2', 'assets/images/ships/one.png', (CELLSIZE*10, 470), (CELLSIZE, CELLSIZE)],
-    'one3': ['one3', 'assets/images/ships/one.png', (CELLSIZE*10, 470), (CELLSIZE, CELLSIZE)],
-    'one4': ['one4', 'assets/images/ships/one.png', (CELLSIZE*10, 470), (CELLSIZE, CELLSIZE)],
+    'four': ['four', 'assets/images/ships/four.png', (CELLSIZE*4, 490), (CELLSIZE, CELLSIZE*4)],
+    'three1': ['three1', 'assets/images/ships/three.png', (CELLSIZE*6, 490), (CELLSIZE, CELLSIZE*3)],
+    'three2': ['three2', 'assets/images/ships/three.png', (CELLSIZE*6, 490), (CELLSIZE, CELLSIZE*3)],
+    'two1': ['two1', 'assets/images/ships/two.png', (CELLSIZE*8, 490), (CELLSIZE, CELLSIZE*2)],
+    'two2': ['two2', 'assets/images/ships/two.png', (CELLSIZE*8, 490), (CELLSIZE, CELLSIZE*2)],
+    'two3': ['two3', 'assets/images/ships/two.png', (CELLSIZE*8, 490), (CELLSIZE, CELLSIZE*2)],
+    'one1': ['one1', 'assets/images/ships/one.png', (CELLSIZE*10, 490), (CELLSIZE, CELLSIZE)],
+    'one2': ['one2', 'assets/images/ships/one.png', (CELLSIZE*10, 490), (CELLSIZE, CELLSIZE)],
+    'one3': ['one3', 'assets/images/ships/one.png', (CELLSIZE*10, 490), (CELLSIZE, CELLSIZE)],
+    'one4': ['one4', 'assets/images/ships/one.png', (CELLSIZE*10, 490), (CELLSIZE, CELLSIZE)],
 }
 STAGE = ['Start Menu', 'Registration', 'Select Avatar','Main Menu', 'Deployment', 'Game Over', 'Developers Info']
 
 #  Loading Game Variables
-pGameGrid = createGameGrid(ROWS, COLS, CELLSIZE, (CELLSIZE*4, 110 + CELLSIZE))
+pGameGrid = createGameGrid(ROWS, COLS, CELLSIZE, (CELLSIZE*4, 130 + CELLSIZE))
 # pGameGrid = createGameGrid(ROWS, COLS, CELLSIZE, (CELLSIZE, CELLSIZE))
 pGameLogic = createGameLogic(ROWS, COLS)
 pFleet = createFleet()
 
-cGameGrid = createGameGrid(ROWS, COLS, CELLSIZE, (SCREENWIDTH - (ROWS * CELLSIZE) - CELLSIZE*3, 110 + CELLSIZE))
+cGameGrid = createGameGrid(ROWS, COLS, CELLSIZE, (SCREENWIDTH - (ROWS * CELLSIZE) - CELLSIZE*3, 130 + CELLSIZE))
 # cGameGrid = createGameGrid(ROWS, COLS, CELLSIZE, (SCREENWIDTH - (ROWS * CELLSIZE), CELLSIZE))
 cGameLogic = createGameLogic(ROWS, COLS)
 cFleet = createFleet()
@@ -1195,7 +1265,7 @@ ENDSCREENIMAGE = loadImage('assets/images/background/Battleship.jpg', (SCREENWID
 BACKGROUND = loadImage('assets/images/background/bg1.png', (SCREENWIDTH, SCREENHEIGHT))
 PGAMEGRIDIMG = loadImage('assets/images/grids/grid.png', ((ROWS + 1) * CELLSIZE, (COLS + 1) * CELLSIZE))
 CGAMEGRIDIMG = loadImage('assets/images/grids/grid.png', ((ROWS + 1) * CELLSIZE, (COLS + 1) * CELLSIZE))
-BUTTONIMAGE = loadImage('assets/images/buttons/button.png', (90, 40))
+BUTTONIMAGE = loadImage('assets/images/buttons/button.png', (110, 40))
 BUTTONIMAGE1 = loadImage('assets/images/buttons/button.png', (200, 50))
 BUTTONIMAGEIINFO = loadImage('assets/images/buttons/button.png', (300, 50))
 BUTTONADD = loadImage('assets/images/buttons/add_btn.png', (40, 40))
@@ -1204,21 +1274,22 @@ BUTTONS = [
     Button(BUTTONIMAGEIINFO, (300, 50), (20, 20), 'Руководство приложения'),
     Button(BUTTONIMAGEIINFO, (300, 50), (SCREENWIDTH - 320, 20), 'Информация о разработчиках'),
     
-    Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 - 40), 'Создать профиль'),
-    Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 + 100), 'Начать игру'),
+    Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 - 80), 'Создать профиль'),
+    Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 + 30), 'Начать игру'),
     
     Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT - 150), 'Сохранить профиль'),
     Button(BUTTONADD, (40, 40), (SCREENWIDTH/2 + 50, 250), 'null_add'),
     Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT - 150), 'Выбрать'),
 
-    Button(BUTTONIMAGE, (90, 40), (500, 500), 'Случайная'),
-    Button(BUTTONIMAGE, (90, 40), (600, 500), 'Сбросить'),
-    Button(BUTTONIMAGE, (90, 40), (700, 500), 'Играть'),
-    Button(BUTTONIMAGE, (90, 40), (500, 550), 'Сохранить'),
-    Button(BUTTONIMAGE, (90, 40), (600, 550), 'Загрузить'),
+    Button(BUTTONIMAGE, (110, 40), (570, 510), 'Случайная'),
+    Button(BUTTONIMAGE, (110, 40), (690, 510), 'Сбросить'),
+    Button(BUTTONIMAGE, (110, 40), (810, 510), 'Играть'),
+    Button(BUTTONIMAGE, (110, 40), (570, 560), 'Сохранить'),
+    Button(BUTTONIMAGE, (110, 40), (690, 560), 'Загрузить'),
+    Button(BUTTONIMAGE, (110, 40), (SCREENWIDTH/2 - 55, SCREENHEIGHT - 70), 'Выйти'),
 
-    Button(BUTTONIMAGE1, (200, 40), (700, SCREENHEIGHT // 2 - 150), 'Легкий'),
-    Button(BUTTONIMAGE1, (200, 40), (700, SCREENHEIGHT // 2 + 150), 'Сложный')
+    Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 - 80), 'Легкий'),
+    Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 + 30), 'Сложный')
 ]
 REDTOKEN = loadImage('assets/images/tokens/redtoken.png', (CELLSIZE, CELLSIZE))
 GREENTOKEN = loadImage('assets/images/tokens/greentoken.png', (CELLSIZE, CELLSIZE))
@@ -1242,6 +1313,7 @@ MISSSOUND.set_volume(0.05)
 #  Initialise Players
 player1 = Player()
 computer = EasyComputer()
+computer.login = 'computer'
 
 # #  Main Game Loop
 login = ''
@@ -1282,7 +1354,17 @@ while RUNGAME:
                             status = deploymentPhase(DEPLOYMENT)
                             DEPLOYMENT = status
                         elif button.name == 'Выйти' and button.active == True:
-                            RUNGAME = False
+                            TOKENS.clear()
+                            for ship in pFleet:
+                                ship.returnToDefaultPosition()
+                            randomizeShipPositions(cFleet, cGameGrid)
+                            pGameLogic = createGameLogic(ROWS, COLS)
+                            updateGameLogic(pGameGrid, pFleet, pGameLogic)
+                            cGameLogic = createGameLogic(ROWS, COLS)
+                            updateGameLogic(cGameGrid, cFleet, cGameLogic)
+                            status = deploymentPhase(DEPLOYMENT)
+                            DEPLOYMENT = status
+                            GAMESTATE = STAGE[0]
                         elif (button.name == 'Легкий' or button.name == 'Сложный') and button.active == True:
                             if button.name == 'Легкий':
                                 computer = EasyComputer()
@@ -1299,7 +1381,7 @@ while RUNGAME:
                                 updateGameLogic(cGameGrid, cFleet, cGameLogic)
                                 status = deploymentPhase(DEPLOYMENT)
                                 DEPLOYMENT = status
-                            GAMESTATE = STAGE[5]
+                            GAMESTATE = 'Deployment'
                         button.actionOnPress()
 
 
