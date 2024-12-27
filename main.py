@@ -314,14 +314,80 @@ def save_fleet_to_file(fleet):
 
 
 def load_fleet_from_file(fleet):
+    from tkinter.messagebox import showerror, askyesno
+    from tkinter import Tk, filedialog
     """Открывает окно выбора файла и загружает расстановку кораблей."""
     root = Tk()
     root.withdraw()  # Скрыть главное окно Tkinter
-    filename = filedialog.askopenfilename(
-        filetypes=[("Ship Battle files", "*.sb"), ("All files", "*.*")],
-        title="Загрузить расстановку кораблей"
-    )
-    if filename:
+
+    while True:
+        filename = filedialog.askopenfilename(
+            filetypes=[("Ship Battle files", "*.sb")],
+            title="Загрузить расстановку кораблей"
+        )
+
+        if not filename:  # Если файл не выбран, выходим из функции
+            print("Загрузка файла отменена.")
+            return
+
+        try:
+            with open(filename, 'r') as f:
+                data = json.load(f)  # Попытка загрузки JSON
+
+            # Проверка структуры данных
+            if not isinstance(data, dict):
+                raise ValueError("Некорректный формат данных. Ожидался объект JSON с данными кораблей.")
+
+            for ship in fleet:
+                if ship.name in data:
+                    ship_data = data[ship.name]
+                    
+                    # Проверка наличия обязательных полей
+                    if "position" not in ship_data or "rotation" not in ship_data:
+                        raise KeyError(f"У корабля '{ship.name}' отсутствуют обязательные данные: 'position' или 'rotation'.")
+
+                    # Устанавливаем позицию
+                    ship.rect.topleft = tuple(ship_data["position"])
+
+                    # Устанавливаем ориентацию
+                    if ship_data["rotation"] != ship.rotation:
+                        ship.rotation = ship_data["rotation"]
+                        ship.switchImageAndRect()
+
+                    # Синхронизация прямоугольников
+                    ship.hImageRect.topleft = ship.rect.topleft
+                    ship.vImageRect.topleft = ship.rect.topleft
+
+                    # Перемещаем изображение в правильное положение
+                    ship.rect = ship.hImageRect if ship.rotation else ship.vImageRect
+                    ship.rect.topleft = tuple(ship_data["position"])
+
+                    # Отладка
+                    print(f"Корабль '{ship.name}' загружен: позиция={ship.rect.topleft}, ориентация={'горизонтальная' if ship.rotation else 'вертикальная'}.")
+                else:
+                    # Если данные отсутствуют, возвращаем корабль в начальное положение
+                    print(f"Корабль '{ship.name}' отсутствует в данных. Возвращён в начальное положение.")
+                    ship.returnToDefaultPosition()
+            
+            # Если всё прошло успешно, выходим из цикла
+            print("Данные успешно загружены.")
+            return
+
+        except FileNotFoundError:
+            showerror("Ошибка", "Файл не найден.")            
+            data = None
+        except json.JSONDecodeError as e:
+            showerror("Ошибка", f"Ошибка чтения JSON: {e}")       
+            data = None
+        except (KeyError, ValueError) as e:
+            showerror("Ошибка", f"Ошибка в данных файла: {e}")       
+            data = None
+        except Exception as e:
+            showerror("Ошибка", f"Произошла неизвестная ошибка: {e}")       
+            data = None
+        return
+
+    # if filename:
         with open(filename, 'r') as f:
             data = json.load(f)
 
@@ -351,9 +417,9 @@ def load_fleet_from_file(fleet):
                 ship.returnToDefaultPosition()
 
 
-# ------------------------------------------------------------------------------------------------------
-# ------------------------------------- Игрок ----------------------------------
-# ------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# ---------------------------------- Игрок -------------------------------------
+# ------------------------------------------------------------------------------
 class Player:
     def __init__(self):
         self.turn = True
@@ -755,9 +821,12 @@ def checkForWinners(grid):
 # ----------------------------------Начальный экран------------------------------
 def startScreen(window):
     global GAMESTATE
+    global PLAYER_WIN
 
     global PREV_GAMESTATE
     PREV_GAMESTATE = GAMESTATE
+    
+    PLAYER_WIN = False
 
     font = pygame.font.Font(None, 28)
     error_message = ""
@@ -847,7 +916,10 @@ def registrationScreen(window):
                             GAMESTATE = STAGE[2]
                             return
                         if button.name == 'Сохранить профиль' and button.active == True:
-                            if player1.avatar and player1.login:
+                            if len(login) < 4 or len(login) > 10:
+                                create_error_message = "Введите валидные данные"
+                                print(create_error_message)
+                            elif player1.avatar and player1.login:
                                 create_error_message = ''
                                 # global GAMESTATE
                                 GAMESTATE = 'Start Menu'
@@ -873,7 +945,7 @@ def registrationScreen(window):
                     if event.key == pygame.K_BACKSPACE:
                         login = login[:-1]
                     else:
-                        if (len(login) < 18):
+                        if (len(login) < 10):
                             login += event.unicode
                     # Проверка длины логина и установка сообщения об ошибке
                 if len(login) < 4:
@@ -1093,7 +1165,7 @@ def deploymentScreen(window):
         ship.snapToGrid(pGameGrid)
 
     for ship in cFleet:
-        # ship.draw(window)
+        ship.draw(window)
         ship.snapToGridEdge(cGameGrid)
         ship.snapToGrid(cGameGrid)
 
@@ -1121,12 +1193,23 @@ def deploymentScreen(window):
 
 # -----------------------------------Конец игры-----------------------------------
 def endScreen(window):
-    window.fill((0, 0, 0))
+    window.fill((255, 255, 255))
+    error_font = pygame.font.Font(None, 84)
+    error = 'Победил противник :('
+    win_font = pygame.font.Font(None, 84)
+    win = "Победа!"
 
-    window.blit(ENDSCREENIMAGE, (0, 0))
+    if PLAYER_WIN:
+        window.blit(WIN_BACKGROUND, (0, 0))
+        win_surface = win_font.render(win, True, MESSAGE_COLOR)
+        window.blit(win_surface, (SCREENWIDTH/2 - win_surface.get_width()//2, 80))
+    else:
+        window.blit(LOSS_BACKGROUND, (0, 0))
+        error_surface = error_font.render(error, True, ERROR_COLOR)
+        window.blit(error_surface, (SCREENWIDTH/2 - error_surface.get_width()//2, 80))
 
     for button in BUTTONS:
-        if button.name in ['Легкий', 'Сложный', 'Quit']:
+        if button.name in ['Сыграть еще раз', ' Выйти ']:
             button.active = True
             button.draw(window)
         else:
@@ -1217,7 +1300,7 @@ BLIPPOSITION = None
 TURNTIMER = pygame.time.get_ticks()
 GAMESTATE = 'Start Menu'
 PREV_GAMESTATE = ''
-
+PLAYER_WIN = False
 
 #  Colors
 ERROR_COLOR = '#FF0000'
@@ -1263,6 +1346,10 @@ printGameLogic()
 MAINMENUIMAGE = loadImage('assets/images/background/Battleship.jpg', (SCREENWIDTH // 3 * 2, SCREENHEIGHT))
 ENDSCREENIMAGE = loadImage('assets/images/background/Battleship.jpg', (SCREENWIDTH, SCREENHEIGHT))
 BACKGROUND = loadImage('assets/images/background/bg1.png', (SCREENWIDTH, SCREENHEIGHT))
+WIN_BACKGROUND = loadImage('assets/images/background/win_bg.png', (SCREENWIDTH, SCREENHEIGHT))
+LOSS_BACKGROUND = loadImage('assets/images/background/loss_bg.png', (SCREENWIDTH, SCREENHEIGHT))
+
+
 PGAMEGRIDIMG = loadImage('assets/images/grids/grid.png', ((ROWS + 1) * CELLSIZE, (COLS + 1) * CELLSIZE))
 CGAMEGRIDIMG = loadImage('assets/images/grids/grid.png', ((ROWS + 1) * CELLSIZE, (COLS + 1) * CELLSIZE))
 BUTTONIMAGE = loadImage('assets/images/buttons/button.png', (110, 40))
@@ -1287,6 +1374,9 @@ BUTTONS = [
     Button(BUTTONIMAGE, (110, 40), (570, 560), 'Сохранить'),
     Button(BUTTONIMAGE, (110, 40), (690, 560), 'Загрузить'),
     Button(BUTTONIMAGE, (110, 40), (SCREENWIDTH/2 - 55, SCREENHEIGHT - 70), 'Выйти'),
+
+    Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 - 80), 'Сыграть еще раз'),
+    Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 + 30), ' Выйти '),
 
     Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 - 80), 'Легкий'),
     Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 + 30), 'Сложный')
@@ -1355,6 +1445,7 @@ while RUNGAME:
                             DEPLOYMENT = status
                         elif button.name == 'Выйти' and button.active == True:
                             TOKENS.clear()
+                            PLAYER_WIN = False
                             for ship in pFleet:
                                 ship.returnToDefaultPosition()
                             randomizeShipPositions(cFleet, cGameGrid)
@@ -1365,6 +1456,21 @@ while RUNGAME:
                             status = deploymentPhase(DEPLOYMENT)
                             DEPLOYMENT = status
                             GAMESTATE = STAGE[0]
+
+                        elif button.name == 'Сыграть еще раз' and button.active == True:
+                            TOKENS.clear()
+                            PLAYER_WIN = False
+                            for ship in pFleet:
+                                ship.returnToDefaultPosition()
+                            randomizeShipPositions(cFleet, cGameGrid)
+                            pGameLogic = createGameLogic(ROWS, COLS)
+                            updateGameLogic(pGameGrid, pFleet, pGameLogic)
+                            cGameLogic = createGameLogic(ROWS, COLS)
+                            updateGameLogic(cGameGrid, cFleet, cGameLogic)
+                            status = deploymentPhase(DEPLOYMENT)
+                            DEPLOYMENT = status
+                            GAMESTATE = STAGE[0]
+
                         elif (button.name == 'Легкий' or button.name == 'Сложный') and button.active == True:
                             if button.name == 'Легкий':
                                 computer = EasyComputer()
@@ -1382,7 +1488,13 @@ while RUNGAME:
                                 status = deploymentPhase(DEPLOYMENT)
                                 DEPLOYMENT = status
                             GAMESTATE = 'Deployment'
+
+                        elif button.name == ' Выйти ' and button.active == True:
+                            RUNGAME = False
+
                         button.actionOnPress()
+
+                        
 
 
             elif event.button == 2:
@@ -1410,6 +1522,8 @@ while RUNGAME:
         player1Wins = checkForWinners(cGameLogic)
         computerWins = checkForWinners(pGameLogic)
         if player1Wins == True or computerWins == True:
+            if player1Wins == True:
+                PLAYER_WIN = True
             GAMESTATE = STAGE[5]
 
 
