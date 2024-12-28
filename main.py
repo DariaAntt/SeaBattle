@@ -231,8 +231,9 @@ class Button:
                 self.randomizeShipPositions(pFleet, pGameGrid)
                 self.randomizeShipPositions(cFleet, cGameGrid)
             elif self.name == 'Берега':                
-                # self.resetShips(pFleet)
-                # self.resetShips(cFleet)
+                self.resetShips(pFleet)
+                updateGameLogic(pGameGrid, pFleet, pGameLogic)
+                
                 self.shoresShipPositions(pFleet, pGameGrid)
                 self.randomizeShipPositions(cFleet, cGameGrid)
             elif self.name == 'Сбросить':
@@ -802,7 +803,6 @@ def checkBufferZoneCollisions(ship, shiplist):
 # ------------------------------------------------------------------------------------------------------
 # ------------------------------------- Расстановка Берега ----------------------------------
 # ------------------------------------------------------------------------------------------------------
-
 def shoresShipPositions(shiplist, gamegrid):
     placedShips = []
 
@@ -817,58 +817,96 @@ def shoresShipPositions(shiplist, gamegrid):
 
     # Все клетки на "берегу"
     coast_cells = top_edge + bottom_edge + left_edge + right_edge
-    random.shuffle(coast_cells)  # Перемешиваем для случайности
 
-    # Размещаем многопалубные корабли
-    for ship in [s for s in shiplist if max(s.hImage.get_width(), s.vImage.get_height()) > CELLSIZE]:
+    # Перемешиваем клетки для случайности
+    random.shuffle(coast_cells)
+
+    # Сортируем корабли по длине в убывающем порядке
+    sorted_ships = sorted(
+        [ship for ship in shiplist if max(ship.hImage.get_width(), ship.vImage.get_height()) > CELLSIZE],
+        key=lambda s: max(s.hImage.get_width(), s.vImage.get_height()),
+        reverse=True,
+    )
+
+    while True:  # Основной цикл расстановки (перезапускается при ошибке)
+        success = True  # Флаг успешной расстановки
+
+        random.shuffle(coast_cells)  # Перемешиваем клетки для случайности
+        placedShips.clear()  # Сбрасываем список размещённых кораблей
+        current_coast_cells = coast_cells[:]  # Копируем список клеток
+
+        for ship in sorted_ships:
+            ship.returnToDefaultPosition()
+            validPosition = False
+            i = 0  # Счётчик попыток для текущего корабля
+
+            while not validPosition and i < 5:  # Пытаемся разместить корабль максимум 5 раз
+                i += 1
+                for cell in current_coast_cells:
+                    row, col = cell
+                    x, y = gamegrid[row][col]  # Получаем координаты из сетки
+
+                    # Устанавливаем ориентацию корабля в зависимости от границы
+                    if cell in top_edge:
+                        ship.rotateShip(True)  # Горизонтальная ориентация
+                    elif cell in bottom_edge:
+                        ship.rotateShip(True)  # Горизонтальная ориентация
+                    elif cell in left_edge:
+                        ship.rotateShip(False)  # Вертикальная ориентация
+                    elif cell in right_edge:
+                        ship.rotateShip(False)  # Вертикальная ориентация
+
+                    ship.rect.topleft = (x, y)
+
+                    # Проверяем, вмещается ли корабль в этой ориентации
+                    ship_width = ship.hImage.get_width() // CELLSIZE
+                    ship_height = ship.vImage.get_height() // CELLSIZE
+                    if ship.rotation:  # Горизонтальная ориентация
+                        if col + ship_width > cols:
+                            continue
+                         # Проверяем все клетки корабля на границе
+                        if not all((row, col + i) in coast_cells for i in range(ship_width)):
+                            continue
+                    else:  # Вертикальная ориентация
+                        if row + ship_height > rows:
+                            continue
+                         # Проверяем все клетки корабля на границе
+                        if not all((row + i, col) in coast_cells for i in range(ship_height)):
+                            continue
+
+                    # Проверяем на столкновения
+                    if not checkBufferZoneCollisions(ship, placedShips):
+                        placedShips.append(ship)
+                        current_coast_cells = removeOccupiedCells(ship, current_coast_cells, gamegrid)
+                        validPosition = True
+                        break
+
+                if validPosition:
+                    break
+                
+            if not validPosition:  # Если корабль не удалось разместить
+                success = False
+                break
+        if success:  # Если все многопалубные корабли размещены успешно
+            break
+        
+    one_shiplist = list(filter(lambda x: not x.name.find('one'),shiplist))
+    # Размещаем однопалубные корабли
+    for ship in one_shiplist:
         validPosition = False
         while not validPosition:
             # Сброс корабля в начальное положение
-            ship.returnToDefaultPosition()
+            ship.returnToDefaultPosition()            
+            # Случайный выбор ориентации и позиции
+            yAxis = random.randint(0, len(gamegrid) - (ship.vImage.get_height() // CELLSIZE))
+            xAxis = random.randint(0, len(gamegrid[0]) - 1)
+            ship.rect.topleft = gamegrid[yAxis][xAxis]
+            # Проверка столкновений и минимального расстояния
+            if not checkBufferZoneCollisions(ship, placedShips):
+                validPosition = True
+        placedShips.append(ship)
 
-            for cell in coast_cells:
-                row, col = cell
-                x, y = gamegrid[row][col]  # Получаем координаты из сетки
-                
-                # Устанавливаем ориентацию корабля в зависимости от границы
-                if cell in top_edge or cell in bottom_edge:
-                    ship.rotateShip(True)  # Горизонтальная ориентация
-                else:
-                    ship.rotateShip(False)  # Вертикальная ориентация
 
-                ship.rect.topleft = (x, y)
-
-                # Проверяем, вмещается ли корабль в этой ориентации
-                ship_width = ship.hImage.get_width() // CELLSIZE
-                ship_height = ship.vImage.get_height() // CELLSIZE
-                if ship.rotation:  # Горизонтальная ориентация
-                    if col + ship_width > cols:
-                        continue
-                else:  # Вертикальная ориентация
-                    if row + ship_height > rows:
-                        continue
-
-                # Проверяем на столкновения
-                if not checkBufferZoneCollisions(ship, placedShips):
-                    placedShips.append(ship)
-                    coast_cells.remove(cell)  # Убираем клетку из доступных
-                    validPosition = True
-                    break
-
-    # Размещаем однопалубные корабли
-    for ship in [s for s in shiplist if max(s.hImage.get_width(), s.vImage.get_height()) == CELLSIZE]:
-        validPosition = False
-        while not validPosition:
-            for cell in coast_cells:
-                row, col = cell
-                x, y = gamegrid[row][col]  # Получаем координаты из сетки
-                ship.rect.topleft = (x, y)
-
-                if not checkBufferZoneCollisions(ship, placedShips):
-                    placedShips.append(ship)
-                    coast_cells.remove(cell)  # Убираем клетку из доступных
-                    validPosition = True
-                    break
 
 def removeOccupiedCells(ship, coast_cells, gamegrid):
     """
