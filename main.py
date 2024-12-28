@@ -230,6 +230,11 @@ class Button:
             if self.name == 'Случайная':
                 self.randomizeShipPositions(pFleet, pGameGrid)
                 self.randomizeShipPositions(cFleet, cGameGrid)
+            elif self.name == 'Берега':                
+                # self.resetShips(pFleet)
+                # self.resetShips(cFleet)
+                self.shoresShipPositions(pFleet, pGameGrid)
+                self.randomizeShipPositions(cFleet, cGameGrid)
             elif self.name == 'Сбросить':
                 self.resetShips(pFleet)
             elif self.name == 'Играть':
@@ -247,6 +252,10 @@ class Button:
         if DEPLOYMENT == True:
             randomizeShipPositions(shiplist, gameGrid)
 
+    def shoresShipPositions(self, shiplist, gameGrid):
+        """Calls the randomize ships function"""
+        if DEPLOYMENT == True:
+            shoresShipPositions(shiplist, gameGrid)
 
     def resetShips(self, shiplist):
         """Resets the ships to their default positions"""
@@ -254,10 +263,8 @@ class Button:
             for ship in shiplist:
                 ship.returnToDefaultPosition()
 
-
     def deploymentPhase(self):
         pass
-
 
     def restartTheGame(self):
         TOKENS.clear()
@@ -272,6 +279,8 @@ class Button:
         if self.name == 'Играть' and gameStatus == False:
             self.name = ''
         if self.name == 'Случайная' and gameStatus == False:
+            self.name = ''
+        if self.name == 'Берега' and gameStatus == False:
             self.name = ''
         if self.name == 'Сохранить' and gameStatus == False:
             self.name = ''
@@ -746,7 +755,7 @@ def sortFleet(ship, shiplist):
 
 
 # ------------------------------------------------------------------------------------------------------
-# ------------------------------------- Случаная расстановка ----------------------------------
+# ------------------------------------- Случайная расстановка ----------------------------------
 # ------------------------------------------------------------------------------------------------------
 def randomizeShipPositions(shiplist, gamegrid):
     """Select random locations on the game grid for the battleships ensuring no ships are adjacent."""
@@ -788,6 +797,95 @@ def checkBufferZoneCollisions(ship, shiplist):
         if buffer_zone.colliderect(ship.rect):
             return True
     return False
+
+
+# ------------------------------------------------------------------------------------------------------
+# ------------------------------------- Расстановка Берега ----------------------------------
+# ------------------------------------------------------------------------------------------------------
+
+def shoresShipPositions(shiplist, gamegrid):
+    placedShips = []
+
+    # Создаём список всех клеток вдоль краёв игрового поля
+    rows, cols = len(gamegrid), len(gamegrid[0])
+
+    # Определяем клетки вдоль границ
+    top_edge = [(0, col) for col in range(cols)]
+    bottom_edge = [(rows - 1, col) for col in range(cols)]
+    left_edge = [(row, 0) for row in range(1, rows - 1)]
+    right_edge = [(row, cols - 1) for row in range(1, rows - 1)]
+
+    # Все клетки на "берегу"
+    coast_cells = top_edge + bottom_edge + left_edge + right_edge
+    random.shuffle(coast_cells)  # Перемешиваем для случайности
+
+    # Размещаем многопалубные корабли
+    for ship in [s for s in shiplist if max(s.hImage.get_width(), s.vImage.get_height()) > CELLSIZE]:
+        validPosition = False
+        while not validPosition:
+            # Сброс корабля в начальное положение
+            ship.returnToDefaultPosition()
+
+            for cell in coast_cells:
+                row, col = cell
+                x, y = gamegrid[row][col]  # Получаем координаты из сетки
+                
+                # Устанавливаем ориентацию корабля в зависимости от границы
+                if cell in top_edge or cell in bottom_edge:
+                    ship.rotateShip(True)  # Горизонтальная ориентация
+                else:
+                    ship.rotateShip(False)  # Вертикальная ориентация
+
+                ship.rect.topleft = (x, y)
+
+                # Проверяем, вмещается ли корабль в этой ориентации
+                ship_width = ship.hImage.get_width() // CELLSIZE
+                ship_height = ship.vImage.get_height() // CELLSIZE
+                if ship.rotation:  # Горизонтальная ориентация
+                    if col + ship_width > cols:
+                        continue
+                else:  # Вертикальная ориентация
+                    if row + ship_height > rows:
+                        continue
+
+                # Проверяем на столкновения
+                if not checkBufferZoneCollisions(ship, placedShips):
+                    placedShips.append(ship)
+                    coast_cells.remove(cell)  # Убираем клетку из доступных
+                    validPosition = True
+                    break
+
+    # Размещаем однопалубные корабли
+    for ship in [s for s in shiplist if max(s.hImage.get_width(), s.vImage.get_height()) == CELLSIZE]:
+        validPosition = False
+        while not validPosition:
+            for cell in coast_cells:
+                row, col = cell
+                x, y = gamegrid[row][col]  # Получаем координаты из сетки
+                ship.rect.topleft = (x, y)
+
+                if not checkBufferZoneCollisions(ship, placedShips):
+                    placedShips.append(ship)
+                    coast_cells.remove(cell)  # Убираем клетку из доступных
+                    validPosition = True
+                    break
+
+def removeOccupiedCells(ship, coast_cells, gamegrid):
+    """
+    Удаляет клетки, занятые кораблем, и буферную зону вокруг него из списка доступных клеток "берега".
+    """
+    new_coast_cells = coast_cells[:]
+    for cell in coast_cells:
+        x, y = cell[1] * CELLSIZE, cell[0] * CELLSIZE
+        cell_rect = pygame.Rect(x, y, CELLSIZE, CELLSIZE)
+        buffer_zone = pygame.Rect(
+            ship.rect.left - CELLSIZE, ship.rect.top - CELLSIZE,
+            ship.rect.width + 2 * CELLSIZE, ship.rect.height + 2 * CELLSIZE
+        )
+        if buffer_zone.colliderect(cell_rect):
+            new_coast_cells.remove(cell)
+
+    return new_coast_cells
 
 
 def deploymentPhase(deployment):
@@ -1171,7 +1269,7 @@ def deploymentScreen(window):
 
     for button in BUTTONS:
         if DEPLOYMENT:
-            if button.name in ['Случайная', 'Сбросить', 'Играть', 'Сохранить', 'Загрузить']:
+            if button.name in ['Случайная', 'Сбросить', 'Играть', 'Берега', 'Сохранить', 'Загрузить']:
                 button.active = True
                 button.draw(window)
             else:
@@ -1190,6 +1288,7 @@ def deploymentScreen(window):
 
     updateGameLogic(pGameGrid, pFleet, pGameLogic)
     updateGameLogic(cGameGrid, cFleet, cGameLogic)
+
 
 # -----------------------------------Конец игры-----------------------------------
 def endScreen(window):
@@ -1368,11 +1467,12 @@ BUTTONS = [
     Button(BUTTONADD, (40, 40), (SCREENWIDTH/2 + 50, 250), 'null_add'),
     Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT - 150), 'Выбрать'),
 
-    Button(BUTTONIMAGE, (110, 40), (570, 510), 'Случайная'),
-    Button(BUTTONIMAGE, (110, 40), (690, 510), 'Сбросить'),
-    Button(BUTTONIMAGE, (110, 40), (810, 510), 'Играть'),
+    Button(BUTTONIMAGE, (110, 40), (570, 510), 'Случайная'),    
+    Button(BUTTONIMAGE, (110, 40), (690, 510), 'Берега'),
+    Button(BUTTONIMAGE, (110, 40), (810, 510), 'Сбросить'),
     Button(BUTTONIMAGE, (110, 40), (570, 560), 'Сохранить'),
     Button(BUTTONIMAGE, (110, 40), (690, 560), 'Загрузить'),
+    Button(BUTTONIMAGE, (110, 40), (810, 560), 'Играть'),
     Button(BUTTONIMAGE, (110, 40), (SCREENWIDTH/2 - 55, SCREENHEIGHT - 70), 'Выйти'),
 
     Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 - 80), 'Сыграть еще раз'),
