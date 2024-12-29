@@ -635,11 +635,17 @@ class DiagonalComputer(EasyComputer):
                                 self.start_Y += self.step
                                 print('\nrowX = ' + str(self.rowX) + '\nrowY=' + str(self.rowY) + '\nstep=' + str(self.step))
                                 print('\nself.start_Y =' + str(self.start_Y) + ' >= 10 ')
-                                if self.start_Y >= 10:                                    
-                                    self.start_X = random.choice(free_X)  
-                                    self.rowX = self.start_X
-                                    self.start_Y = 0
-                                    self.rowY = 0
+                                if self.start_Y >= 10:      
+                                    if len(free_X) != 0:                    
+                                        self.start_X = random.choice(free_X)  
+                                        self.rowX = self.start_X
+                                        self.start_Y = 0
+                                        self.rowY = 0
+                                    else:
+                                        self.start_Y = random.choice(free_Y)  
+                                        self.rowY = self.start_Y
+                                        self.start_X = 0
+                                        self.rowX = 0
                                     print('\nrowX = ' + str(self.rowX) + '\nrowY=' + str(self.rowY) + '\nstep=' + str(self.step))
                                 else:
                                     self.rowY = self.start_Y
