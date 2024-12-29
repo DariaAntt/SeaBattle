@@ -597,25 +597,27 @@ class DiagonalComputer(EasyComputer):
         self.start_Y = 0
         self.rowY = 0
         self.rowX = 0
-        self.rowY = 0
+        self.rowY = 0       
+        self.free_X = [0,1,2,3,4,5,6,7,8,9]       
+        self.free_Y = [0,1,2,3,4,5,6,7,8,9] 
         self.step = random.randint(2, 4)  # Шаг между диагоналями
 
 
-    def makeAttack(self, gamelogic):       
-        free_X = [0,1,2,3,4,5,6,7,8,9]        
-        free_Y = [0,1,2,3,4,5,6,7,8,9] 
+    def makeAttack(self, gamelogic): 
         if len(self.moves) == 0:
             COMPTURNTIMER = pygame.time.get_ticks()
             if COMPTURNTIMER - TURNTIMER >= 300:
                 validChoice = False
-
-                while not validChoice:
+                # i=0
+                while not validChoice: 
+                # and i<=5:
+                    # i +=1
 
                     if self.new_seria:
                         self.rowX = random.randint(0, 9)
                         self.start_X = self.rowX
                         self.rowY = 0
-                        self.start_Y = 0
+                        self.start_Y = self.start_X
                         self.new_seria = False
                     else:
                         self.rowX += 1
@@ -624,8 +626,8 @@ class DiagonalComputer(EasyComputer):
                             if self.start_X >= 10:
                                 self.start_X = 0
                                 self.rowX = 0
-                                self.rowY = self.step-1
-                                self.start_Y = self.step-1
+                                self.rowY = self.step
+                                self.start_Y = self.step
                             else: 
                                 self.rowX = self.start_X
                                 self.rowY = 0 
@@ -636,13 +638,13 @@ class DiagonalComputer(EasyComputer):
                                 print('\nrowX = ' + str(self.rowX) + '\nrowY=' + str(self.rowY) + '\nstep=' + str(self.step))
                                 print('\nself.start_Y =' + str(self.start_Y) + ' >= 10 ')
                                 if self.start_Y >= 10:      
-                                    if len(free_X) != 0:                    
-                                        self.start_X = random.choice(free_X)  
+                                    if len(self.free_X) != 0:                    
+                                        self.start_X = random.choice(self.free_X)  
                                         self.rowX = self.start_X
                                         self.start_Y = 0
                                         self.rowY = 0
                                     else:
-                                        self.start_Y = random.choice(free_Y)  
+                                        self.start_Y = random.choice(self.free_Y)  
                                         self.rowY = self.start_Y
                                         self.start_X = 0
                                         self.rowX = 0
@@ -656,8 +658,10 @@ class DiagonalComputer(EasyComputer):
                     print('\nrowX = ' + str(self.rowX) + '\nrowY=' + str(self.rowY) + '\nstep=' + str(self.step))
                     if gamelogic[self.rowY][self.rowX] == ' ' or gamelogic[self.rowY][self.rowX] == 'O':
                         validChoice = True
-                        if self.rowY == 0: free_X.remove(self.rowX)
-                        if self.rowX == 0: free_Y.remove(self.rowY)
+                        if self.rowY == 0: self.free_X.remove(self.rowX)
+                        if self.rowX == 0: self.free_Y.remove(self.rowY)
+                        print('self.free_X: ' + str(self.free_X))
+                        print('self.free_Y: ' + str(self.free_Y))
 
 
                 if gamelogic[self.rowY][self.rowX] == 'O':
