@@ -512,22 +512,22 @@ class HardComputer(EasyComputer):
                 validChoice = False
                 while not validChoice:
                     rowX = random.randint(0, 9)
-                    rowY = random.randint(0, 9)
+                    cur_Y = random.randint(0, 9)
 
-                    if gamelogic[rowX][rowY] == ' ' or gamelogic[rowX][rowY] == 'O':
+                    if gamelogic[rowX][cur_Y] == ' ' or gamelogic[rowX][cur_Y] == 'O':
                         validChoice = True
 
-                if gamelogic[rowX][rowY] == 'O':
+                if gamelogic[rowX][cur_Y] == 'O':
                     TOKENS.append(
-                        Tokens(REDTOKEN, pGameGrid[rowX][rowY], 'Hit', FIRETOKENIMAGELIST, EXPLOSIONIMAGELIST, None))
-                    gamelogic[rowX][rowY] = 'T'
+                        Tokens(REDTOKEN, pGameGrid[rowX][cur_Y], 'Hit', FIRETOKENIMAGELIST, EXPLOSIONIMAGELIST, None))
+                    gamelogic[rowX][cur_Y] = 'T'
                     SHOTSOUND.play()
                     HITSOUND.play()
-                    self.generateMoves((rowX, rowY), gamelogic)
+                    self.generateMoves((rowX, cur_Y), gamelogic)
                     # self.turn = False
                 else:
-                    gamelogic[rowX][rowY] = 'X'
-                    TOKENS.append(Tokens(BLUETOKEN, pGameGrid[rowX][rowY], 'Miss', None, None, None))
+                    gamelogic[rowX][cur_Y] = 'X'
+                    TOKENS.append(Tokens(BLUETOKEN, pGameGrid[rowX][cur_Y], 'Miss', None, None, None))
                     SHOTSOUND.play()
                     MISSSOUND.play()
                     self.turn = False
@@ -535,12 +535,12 @@ class HardComputer(EasyComputer):
         elif len(self.moves) > 0:
             COMPTURNTIMER = pygame.time.get_ticks()
             if COMPTURNTIMER - TURNTIMER >= 2000:
-                rowX, rowY = self.moves[0]
-                TOKENS.append(Tokens(REDTOKEN, pGameGrid[rowX][rowY], 'Hit', FIRETOKENIMAGELIST, EXPLOSIONIMAGELIST, None))
-                gamelogic[rowX][rowY] = 'T'
+                rowX, cur_Y = self.moves[0]
+                TOKENS.append(Tokens(REDTOKEN, pGameGrid[rowX][cur_Y], 'Hit', FIRETOKENIMAGELIST, EXPLOSIONIMAGELIST, None))
+                gamelogic[rowX][cur_Y] = 'T'
                 SHOTSOUND.play()
                 HITSOUND.play()
-                self.moves.remove((rowX, rowY))
+                self.moves.remove((rowX, cur_Y))
                 self.turn = False
         return self.turn
 
@@ -592,89 +592,161 @@ class DiagonalComputer(EasyComputer):
     def __init__(self):
         super().__init__()
         self.moves = []
-        self.new_seria = True
+        self.start_attack = True
         self.start_X = 0
         self.start_Y = 0
-        self.rowY = 0
-        self.rowX = 0
-        self.rowY = 0       
+
+        self.cur_X = 0
+        self.cur_Y = 0   
+
         self.free_X = [0,1,2,3,4,5,6,7,8,9]       
         self.free_Y = [0,1,2,3,4,5,6,7,8,9] 
-        self.step = random.randint(2, 4)  # Шаг между диагоналями
+        self.start_seria_X = 0
+        self.start_seria_Y = 0
+        self.step = random.randint(2, 4)
+        self.step_back = False
 
 
-    def makeAttack(self, gamelogic): 
+    def makeAttack(self, gamelogic):
         if len(self.moves) == 0:
             COMPTURNTIMER = pygame.time.get_ticks()
             if COMPTURNTIMER - TURNTIMER >= 300:
                 validChoice = False
-                # i=0
+                count = 0 
                 while not validChoice: 
-                # and i<=5:
-                    # i +=1
+                    print('---------------------------------------------------')
+                    print(f'self.step_back = {self.step_back}')
+                    count += 1
+                    if count > 5:
+                        pygame.quit()
+                        sys.exit()
+                    
+                    if self.start_attack:
+                        self.start_X = random.randint(0, 9)
+                        self.start_X = 3
+                        self.step = 3
 
-                    if self.new_seria:
-                        self.rowX = random.randint(0, 9)
-                        self.start_X = self.rowX
-                        self.rowY = 0
-                        self.start_Y = self.start_X
-                        self.new_seria = False
+                        self.cur_X = self.start_X
+                        self.start_seria_X = self.cur_X
+
+                        self.cur_Y = 0
+                        self.start_Y = self.cur_Y
+                        self.start_seria_Y = self.cur_Y
+
+                        self.start_attack = False
+
                     else:
-                        self.rowX += 1
-                        if self.rowX >= 10:
-                            self.start_X += self.step
-                            if self.start_X >= 10:
-                                self.start_X = 0
-                                self.rowX = 0
-                                self.rowY = self.step
-                                self.start_Y = self.step
-                            else: 
-                                self.rowX = self.start_X
-                                self.rowY = 0 
+                        print(f'self.start_seria_X = {self.start_seria_X}\tself.start_seria_Y = {self.start_seria_Y}')
+                        self.cur_X += 1
+                        if self.cur_X >= 10:
+                            if not self.step_back:
+                                self.start_X += self.step
+                                if self.start_X >= 10:  
+                                    self.start_X = self.start_seria_X
+                                    self.start_Y = 0
+                                    print('\n\tfor i in range(self.step):')
+                                    for i in range(self.step):
+                                        if self.start_X > 0: 
+                                            self.start_X -= 1
+                                            print(' self.start_X -= 1 = ' + str( self.start_X))
+                                        else: 
+                                            self.start_Y += 1
+                                            print(' self.start_Y -= 1 = ' + str( self.start_Y))
+                                        print('--------')
+                                    self.cur_X = self.start_X
+                                    self.cur_Y = self.start_Y                                  
+                                    self.step_back = True
+                                    print(f'self.step_back = {self.step_back}')
+
+                                    # self.start_X = 0
+                                    # self.cur_X = 0
+                                    # self.cur_Y = self.step
+                                    # self.start_Y = self.step
+                                else: 
+                                    self.cur_X = self.start_X
+                                    self.cur_Y = 0 
+                            else:
+                                print('self.step_back == True!!!!!!!!!!!!!!!!!!!!!!')
+                                if self.start_X - self.step <= 0:
+                                    # self.start_X = self.cur_X
+                                    self.start_Y = 0
+                                    print('\n\tfor i in range(self.step):')
+                                    for i in range(self.step):
+                                        if self.start_X > 0: 
+                                            self.start_X -= 1
+                                            print(' self.start_X -= 1 = ' + str( self.start_X))
+                                        else: 
+                                            self.start_Y += 1
+                                            print(' self.start_Y -= 1 = ' + str( self.start_Y))
+                                            self.step_back = True
+                                        print('--------')
+                                    self.cur_X = self.start_X
+                                    self.cur_Y = self.start_Y
+                                    # self.start_X = 0
+                                    # self.cur_X = 0
+                                    # self.cur_Y = self.step
+                                    # self.start_Y = self.step
+                                else: 
+                                    self.start_X -= self.step 
+                                    self.cur_X = self.start_X
+                                    self.start_Y = 0
+                                    self.cur_Y = self.start_Y
+
+                        # если по x мы не выходим за границу поля, то проверяем границу y, y++ 
                         else:     
-                            self.rowY += 1
-                            if self.rowY >= 10:     
+                            self.cur_Y += 1
+                            if self.cur_Y >= 10:     
                                 self.start_Y += self.step
-                                print('\nrowX = ' + str(self.rowX) + '\nrowY=' + str(self.rowY) + '\nstep=' + str(self.step))
-                                print('\nself.start_Y =' + str(self.start_Y) + ' >= 10 ')
                                 if self.start_Y >= 10:      
                                     if len(self.free_X) != 0:                    
-                                        self.start_X = random.choice(self.free_X)  
-                                        self.rowX = self.start_X
+                                        self.start_X = random.choice(self.free_X)
+                                        self.start_seria_X = self.start_X
+                                        print('random.choice(self.free_X) = ' + str(self.start_X))                                          
+                                        self.cur_X = self.start_X
                                         self.start_Y = 0
-                                        self.rowY = 0
+                                        self.cur_Y = 0
                                     else:
-                                        self.start_Y = random.choice(self.free_Y)  
-                                        self.rowY = self.start_Y
+                                        self.start_Y = random.choice(self.free_Y)
+                                        self.start_seria_Y = self.start_Y
+                                        print('random.choice(self.free_Y) = ' + str(self.start_Y))  
+                                        self.cur_Y = self.start_Y
                                         self.start_X = 0
-                                        self.rowX = 0
-                                    print('\nrowX = ' + str(self.rowX) + '\nrowY=' + str(self.rowY) + '\nstep=' + str(self.step))
+                                        self.cur_X = 0
+                                    # self.step_back = False
                                 else:
-                                    self.rowY = self.start_Y
-                                    self.rowX = 0
-                                    print('\nrowX = ' + str(self.rowX) + '\nrowY=' + str(self.rowY) + '\nstep=' + str(self.step))
+                                    self.cur_Y = self.start_Y
+                                    self.cur_X = 0
+                            # else:
+                            #     if len(self.free_X) != 0:                    
+                            #         self.start_X = random.choice(self.free_X)  
+                            #         self.cur_X = self.start_X
+                            #         self.start_Y = 0
+                            #         self.cur_Y = 0
+
                             
-  
-                    print('\nrowX = ' + str(self.rowX) + '\nrowY=' + str(self.rowY) + '\nstep=' + str(self.step))
-                    if gamelogic[self.rowY][self.rowX] == ' ' or gamelogic[self.rowY][self.rowX] == 'O':
+                    print(f'\n Координаты выбраны {str(count)}')
+                    print('\ncur_X = ' + str(self.cur_X) + '\ncur_Y=' + str(self.cur_Y) + '\nstep=' + str(self.step))
+                    print('\nself.start_X =' + str(self.start_X) + '\nself.start_Y =' + str(self.start_Y))
+
+                    if gamelogic[self.cur_Y][self.cur_X] == ' ' or gamelogic[self.cur_Y][self.cur_X] == 'O':
                         validChoice = True
-                        if self.rowY == 0: self.free_X.remove(self.rowX)
-                        if self.rowX == 0: self.free_Y.remove(self.rowY)
+                        if self.cur_Y == 0: self.free_X.remove(self.cur_X)
+                        if self.cur_X == 0: self.free_Y.remove(self.cur_Y)
                         print('self.free_X: ' + str(self.free_X))
                         print('self.free_Y: ' + str(self.free_Y))
 
 
-                if gamelogic[self.rowY][self.rowX] == 'O':
+                if gamelogic[self.cur_Y][self.cur_X] == 'O':
                     TOKENS.append(
-                        Tokens(REDTOKEN, pGameGrid[self.rowY][self.rowX], 'Hit', FIRETOKENIMAGELIST, EXPLOSIONIMAGELIST, None))
-                    gamelogic[self.rowY][self.rowX] = 'T'
+                        Tokens(REDTOKEN, pGameGrid[self.cur_Y][self.cur_X], 'Hit', FIRETOKENIMAGELIST, EXPLOSIONIMAGELIST, None))
+                    gamelogic[self.cur_Y][self.cur_X] = 'T'
                     SHOTSOUND.play()
                     HITSOUND.play()
-                    # self.generateMoves((self.rowX, self.rowY), gamelogic)
+                    # self.generateMoves((self.cur_X, self.cur_Y), gamelogic)
                     # self.turn = False
                 else:
-                    gamelogic[self.rowY][self.rowX] = 'X'
-                    TOKENS.append(Tokens(BLUETOKEN, pGameGrid[self.rowY][self.rowX], 'Miss', None, None, None))
+                    gamelogic[self.cur_Y][self.cur_X] = 'X'
+                    TOKENS.append(Tokens(BLUETOKEN, pGameGrid[self.cur_Y][self.cur_X], 'Miss', None, None, None))
                     SHOTSOUND.play()
                     MISSSOUND.play()
                     self.turn = False
@@ -682,14 +754,15 @@ class DiagonalComputer(EasyComputer):
         elif len(self.moves) > 0:
             COMPTURNTIMER = pygame.time.get_ticks()
             if COMPTURNTIMER - TURNTIMER >= 2000:
-                self.rowX, self.rowY = self.moves[0]
-                TOKENS.append(Tokens(REDTOKEN, pGameGrid[self.rowY][self.rowX], 'Hit', FIRETOKENIMAGELIST, EXPLOSIONIMAGELIST, None))
-                gamelogic[self.rowY][self.rowX] = 'T'
+                self.cur_X, self.cur_Y = self.moves[0]
+                TOKENS.append(Tokens(REDTOKEN, pGameGrid[self.cur_Y][self.cur_X], 'Hit', FIRETOKENIMAGELIST, EXPLOSIONIMAGELIST, None))
+                gamelogic[self.cur_Y][self.cur_X] = 'T'
                 SHOTSOUND.play()
                 HITSOUND.play()
-                self.moves.remove((self.rowX, self.rowY))
+                self.moves.remove((self.cur_X, self.cur_Y))
                 self.turn = False
         return self.turn
+
 
     def generateMoves(self, coords, grid, lstDir=None):
         x, y = coords
