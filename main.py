@@ -73,9 +73,6 @@ class Ship:
             self.hImageRect.topleft = self.rect.topleft
             self.vImageRect.topleft = self.rect.topleft
 
-            # Отладка
-            print(f"Корабль '{self.name}' повернут. Новая ориентация: {'горизонтальная' if self.rotation else 'вертикальная'}.")
-
 
     def switchImageAndRect(self):
         """Переключает изображения и прямоугольники между горизонтальным и вертикальным положением."""
@@ -89,9 +86,6 @@ class Ship:
         # Обновляем центр прямоугольников
         self.hImageRect.center = self.rect.center
         self.vImageRect.center = self.rect.center
-
-        # Отладка
-        print(f"Синхронизация изображения и прямоугольников завершена для '{self.name}'.")
 
 
     def checkForCollisions(self, shiplist):
@@ -586,8 +580,266 @@ class HardComputer(EasyComputer):
                     if (nx, ny) not in self.moves and grid[nx][ny] == 'O':
                         self.moves.append((nx, ny))
                         self.generateMoves((nx, ny), grid, 'East')
-
         return
+
+
+
+# ------------------------------------------------------------------------------------------------------
+# ------------------------------------- Противник с диагональной атакой ----------------------------------
+# ------------------------------------------------------------------------------------------------------
+
+class DiagonalComputer(EasyComputer): 
+    def __init__(self):
+        super().__init__()
+        self.moves = []
+        self.new_seria = True
+        self.start_X = 0
+        self.start_Y = 0
+        self.rowY = 0
+        self.rowX = 0
+        self.rowY = 0
+        self.step = random.randint(2, 4)  # Шаг между диагоналями
+
+
+    def makeAttack(self, gamelogic):       
+        free_X = [0,1,2,3,4,5,6,7,8,9]        
+        free_Y = [0,1,2,3,4,5,6,7,8,9] 
+        if len(self.moves) == 0:
+            COMPTURNTIMER = pygame.time.get_ticks()
+            if COMPTURNTIMER - TURNTIMER >= 300:
+                validChoice = False
+
+                while not validChoice:
+
+                    if self.new_seria:
+                        self.rowX = random.randint(0, 9)
+                        self.start_X = self.rowX
+                        self.rowY = 0
+                        self.start_Y = 0
+                        self.new_seria = False
+                    else:
+                        self.rowX += 1
+                        if self.rowX >= 10:
+                            self.start_X += self.step
+                            if self.start_X >= 10:
+                                self.start_X = 0
+                                self.rowX = 0
+                                self.rowY = self.step-1
+                                self.start_Y = self.step-1
+                            else: 
+                                self.rowX = self.start_X
+                                self.rowY = 0 
+                        else:     
+                            self.rowY += 1
+                            if self.rowY >= 10:     
+                                self.start_Y += self.step
+                                print('\nrowX = ' + str(self.rowX) + '\nrowY=' + str(self.rowY) + '\nstep=' + str(self.step))
+                                print('\nself.start_Y =' + str(self.start_Y) + ' >= 10 ')
+                                if self.start_Y >= 10:                                    
+                                    self.start_X = random.choice(free_X)  
+                                    self.rowX = self.start_X
+                                    self.start_Y = 0
+                                    self.rowY = 0
+                                    print('\nrowX = ' + str(self.rowX) + '\nrowY=' + str(self.rowY) + '\nstep=' + str(self.step))
+                                else:
+                                    self.rowY = self.start_Y
+                                    self.rowX = 0
+                                    print('\nrowX = ' + str(self.rowX) + '\nrowY=' + str(self.rowY) + '\nstep=' + str(self.step))
+                            
+  
+                    print('\nrowX = ' + str(self.rowX) + '\nrowY=' + str(self.rowY) + '\nstep=' + str(self.step))
+                    if gamelogic[self.rowY][self.rowX] == ' ' or gamelogic[self.rowY][self.rowX] == 'O':
+                        validChoice = True
+                        if self.rowY == 0: free_X.remove(self.rowX)
+                        if self.rowX == 0: free_Y.remove(self.rowY)
+
+
+                if gamelogic[self.rowY][self.rowX] == 'O':
+                    TOKENS.append(
+                        Tokens(REDTOKEN, pGameGrid[self.rowY][self.rowX], 'Hit', FIRETOKENIMAGELIST, EXPLOSIONIMAGELIST, None))
+                    gamelogic[self.rowY][self.rowX] = 'T'
+                    SHOTSOUND.play()
+                    HITSOUND.play()
+                    # self.generateMoves((self.rowX, self.rowY), gamelogic)
+                    # self.turn = False
+                else:
+                    gamelogic[self.rowY][self.rowX] = 'X'
+                    TOKENS.append(Tokens(BLUETOKEN, pGameGrid[self.rowY][self.rowX], 'Miss', None, None, None))
+                    SHOTSOUND.play()
+                    MISSSOUND.play()
+                    self.turn = False
+
+        elif len(self.moves) > 0:
+            COMPTURNTIMER = pygame.time.get_ticks()
+            if COMPTURNTIMER - TURNTIMER >= 2000:
+                self.rowX, self.rowY = self.moves[0]
+                TOKENS.append(Tokens(REDTOKEN, pGameGrid[self.rowY][self.rowX], 'Hit', FIRETOKENIMAGELIST, EXPLOSIONIMAGELIST, None))
+                gamelogic[self.rowY][self.rowX] = 'T'
+                SHOTSOUND.play()
+                HITSOUND.play()
+                self.moves.remove((self.rowX, self.rowY))
+                self.turn = False
+        return self.turn
+
+    def generateMoves(self, coords, grid, lstDir=None):
+        x, y = coords
+        nx, ny = 0, 0
+        for direction in ['North', 'South', 'East', 'West']:
+            if direction == 'North' and lstDir != 'North':
+                nx = x - 1
+                ny = y
+                if not (nx > 9 or ny > 9 or nx < 0 or ny < 0):
+                    if (nx, ny) not in self.moves and grid[nx][ny] == 'O':
+                        self.moves.append((nx, ny))
+                        self.generateMoves((nx, ny), grid, 'South')
+
+            if direction == 'South' and lstDir != 'South':
+                nx = x + 1
+                ny = y
+                if not (nx > 9 or ny > 9 or nx < 0 or ny < 0):
+                    if (nx, ny) not in self.moves and grid[nx][ny] == 'O':
+                        self.moves.append((nx, ny))
+                        self.generateMoves((nx, ny), grid, 'North')
+
+            if direction == 'East' and lstDir != 'East':
+                nx = x
+                ny = y + 1
+                if not (nx > 9 or ny > 9 or nx < 0 or ny < 0):
+                    if (nx, ny) not in self.moves and grid[nx][ny] == 'O':
+                        self.moves.append((nx, ny))
+                        self.generateMoves((nx, ny), grid, 'West')
+
+            if direction == 'West' and lstDir != 'West':
+                nx = x
+                ny = y - 1
+                if not (nx > 9 or ny > 9 or nx < 0 or ny < 0):
+                    if (nx, ny) not in self.moves and grid[nx][ny] == 'O':
+                        self.moves.append((nx, ny))
+                        self.generateMoves((nx, ny), grid, 'East')
+        return 
+
+
+
+
+
+# ------------------------------------------------------------------------------------------------------
+# ------------------------------------- Противник с квадрадной атакой ----------------------------------
+# ------------------------------------------------------------------------------------------------------
+class SquareComputer(EasyComputer):
+    def __init__(self):
+        super().__init__()
+        board_size = 10
+        self.square_size = 3  # Размер стороны квадрата
+        self.current_square_start = (0, 0)  # Координаты первого квадрата
+        self.attack_sequence = self.generate_square_sequence()
+
+    def generate_square_sequence(self):
+        """
+        Генерирует последовательность клеток для атаки в рамках текущего квадрата.
+        """
+        x, y = self.current_square_start
+        sequence = [
+            (x, y),
+            (x, y + self.square_size - 1),
+            (x + self.square_size - 1, y + self.square_size - 1),
+            (x + self.square_size - 1, y),
+        ]
+        # Добавляем клетки вокруг центральной точки квадрата по часовой стрелке
+        for i in range(self.square_size):
+            sequence.append((x + i, y))  # Левая сторона
+            sequence.append((x, y + i))  # Верхняя сторона
+            sequence.append((x + i, y + self.square_size - 1))  # Правая сторона
+            sequence.append((x + self.square_size - 1, y + i))  # Нижняя сторона
+        # Убираем дубликаты и возвращаем
+        return list(dict.fromkeys(sequence))
+
+    def update_square_start(self):
+        """
+        Обновляет координаты начальной точки следующего квадрата.
+        """
+        x, y = self.current_square_start
+        x += self.square_size
+        if x >= self.board_size:
+            x = 0
+            y += self.square_size
+        self.current_square_start = (x, y)
+        if y >= self.board_size:
+            self.current_square_start = (0, 0)  # Возвращаемся в начало
+
+    def makeAttack(self):
+        """
+        Выполняет атаку по квадратной стратегии.
+        """
+        while self.attack_sequence:
+            target = self.attack_sequence.pop(0)
+            if self.is_valid_attack(target):
+                self.record_attack(target)
+                return target
+        # Если текущий квадрат исчерпан, переходим к следующему
+        self.update_square_start()
+        self.attack_sequence = self.generate_square_sequence()
+        return self.makeAttack()
+
+    def is_valid_attack(self, target):
+        """
+        Проверяет, является ли цель валидной для атаки (не атакована ранее).
+        """
+        x, y = target
+        return 0 <= x < self.board_size and 0 <= y < self.board_size and target not in self.attacked_positions
+
+    def record_attack(self, target):
+        """
+        Записывает атаку в список атакованных позиций.
+        """
+        self.attacked_positions.add(target)
+        
+    # def __init__(self):
+    #     super().__init__()
+    #     self.moves = []
+
+    # def makeAttack(self, gamelogic):
+    #     return self.turn
+
+
+
+    # def generateMoves(self, coords, grid, lstDir=None):
+    #     x, y = coords
+    #     nx, ny = 0, 0
+    #     for direction in ['North', 'South', 'East', 'West']:
+    #         if direction == 'North' and lstDir != 'North':
+    #             nx = x - 1
+    #             ny = y
+    #             if not (nx > 9 or ny > 9 or nx < 0 or ny < 0):
+    #                 if (nx, ny) not in self.moves and grid[nx][ny] == 'O':
+    #                     self.moves.append((nx, ny))
+    #                     self.generateMoves((nx, ny), grid, 'South')
+
+    #         if direction == 'South' and lstDir != 'South':
+    #             nx = x + 1
+    #             ny = y
+    #             if not (nx > 9 or ny > 9 or nx < 0 or ny < 0):
+    #                 if (nx, ny) not in self.moves and grid[nx][ny] == 'O':
+    #                     self.moves.append((nx, ny))
+    #                     self.generateMoves((nx, ny), grid, 'North')
+
+    #         if direction == 'East' and lstDir != 'East':
+    #             nx = x
+    #             ny = y + 1
+    #             if not (nx > 9 or ny > 9 or nx < 0 or ny < 0):
+    #                 if (nx, ny) not in self.moves and grid[nx][ny] == 'O':
+    #                     self.moves.append((nx, ny))
+    #                     self.generateMoves((nx, ny), grid, 'West')
+
+    #         if direction == 'West' and lstDir != 'West':
+    #             nx = x
+    #             ny = y - 1
+    #             if not (nx > 9 or ny > 9 or nx < 0 or ny < 0):
+    #                 if (nx, ny) not in self.moves and grid[nx][ny] == 'O':
+    #                     self.moves.append((nx, ny))
+    #                     self.generateMoves((nx, ny), grid, 'East')
+    #     return
+
+
 
 
 
@@ -889,7 +1141,7 @@ def shoresShipPositions(shiplist, gamegrid):
                 break
         if success:  # Если все многопалубные корабли размещены успешно
             break
-        
+
     one_shiplist = list(filter(lambda x: not x.name.find('one'),shiplist))
     # Размещаем однопалубные корабли
     for ship in one_shiplist:
@@ -905,8 +1157,6 @@ def shoresShipPositions(shiplist, gamegrid):
             if not checkBufferZoneCollisions(ship, placedShips):
                 validPosition = True
         placedShips.append(ship)
-
-
 
 def removeOccupiedCells(ship, coast_cells, gamegrid):
     """
@@ -1612,8 +1862,12 @@ while RUNGAME:
                         elif (button.name == 'Легкий' or button.name == 'Сложный') and button.active == True:
                             if button.name == 'Легкий':
                                 computer = EasyComputer()
-                            elif button.name == 'Сложный':
-                                computer = HardComputer()
+                            elif button.name == 'Сложный' and button.active:
+                                # Инициализация сложного компьютера с квадратной стратегией
+                                square_size = 3  # Размер стороны квадрата (можно варьировать)
+                                board_size = ROWS  # Предполагается, что поле квадратное
+                                computer = DiagonalComputer()
+                                GAMESTATE = 'Deployment'
                             if GAMESTATE == 'Game Over':
                                 TOKENS.clear()
                                 for ship in pFleet:
@@ -1630,10 +1884,7 @@ while RUNGAME:
                         elif button.name == ' Выйти ' and button.active == True:
                             RUNGAME = False
 
-                        button.actionOnPress()
-
-                        
-
+                        button.actionOnPress()                
 
             elif event.button == 2:
                 printGameLogic()

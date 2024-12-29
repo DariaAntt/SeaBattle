@@ -1,0 +1,83 @@
+class DiagonalComputer(EasyComputer): 
+    def __init__(self):
+        super().__init__()
+        self.moves = []
+        self.new_seria = True
+        self.start_X = 0
+        self.rowY = 0
+        self.rowX = 0
+        self.rowY = 0
+        self.step = random.randint(2, 4)  # Шаг между диагоналями
+        self.visited_x = []
+        self.visited_y = []
+
+    def makeAttack(self, gamelogic):        
+        if len(self.moves) == 0:
+            COMPTURNTIMER = pygame.time.get_ticks()
+            if COMPTURNTIMER - TURNTIMER >= 300:
+                validChoice = False
+                while not validChoice:
+                    
+                    if self.new_seria:
+                        self.rowX = random.randint(0, 9)
+                        self.start_X = self.rowX
+                        self.rowY = 0
+                        self.new_seria = False
+                        print('\nrowX = ' + str(self.rowX) + '\nrowY=' + str(self.rowY) + '\nstep=' + str(self.step))
+                    else:
+                        self.rowX += 1
+                        print('\n\nrowX = ' + str(self.rowX) + '\nrowY = ' + str(self.rowY))     
+
+                        if self.rowX >= 10:
+                            self.start_X = self.step
+                            print('\nrowX = ' + str(self.rowX) + '\nrowY = ' + str(self.rowY))
+                            if self.start_X >= 10: 
+                                self.start_X = 0
+                                self.rowX = 0
+                                self.star_y = self.step
+                                print('\nrowX = ' + str(self.rowX) + '\nrowY = ' + str(self.rowY))
+                                if self.star_y >= 10: 
+                                    self.rowX = 0
+                                    self.star_y = random.choice(self.visited_y)   
+                                    print('\nrowX = ' + str(self.rowX) + '\nrowY = ' + str(self.rowY))           
+                        # if self.rowX != 0:
+                        #     self.rowY += 1
+                        #     if self.rowY >= 10:                         
+                        #         self.rowY = 0  
+                        #         self.rowX = random.choice(self.visited_x)     
+                        #         # self.new_seria = True
+  
+
+                    if gamelogic[self.rowY][self.rowX] == ' ' or gamelogic[self.rowY][self.rowX] == 'O':
+                        validChoice = True
+                        print('\nvalidChoice = True')
+                        if self.rowY == 0: self.visited_x.append(self.rowX)
+                        if self.rowX == 0: self.visited_y.append(self.rowY)
+
+
+                if gamelogic[self.rowY][self.rowX] == 'O':
+                    TOKENS.append(
+                        Tokens(REDTOKEN, pGameGrid[self.rowY][self.rowX], 'Hit', FIRETOKENIMAGELIST, EXPLOSIONIMAGELIST, None))
+                    gamelogic[self.rowY][self.rowX] = 'T'
+                    SHOTSOUND.play()
+                    HITSOUND.play()
+                    # self.generateMoves((self.rowX, self.rowY), gamelogic)
+                    # self.turn = False
+                else:
+                    gamelogic[self.rowY][self.rowX] = 'X'
+                    TOKENS.append(Tokens(BLUETOKEN, pGameGrid[self.rowY][self.rowX], 'Miss', None, None, None))
+                    SHOTSOUND.play()
+                    MISSSOUND.play()
+                    self.turn = False
+
+        elif len(self.moves) > 0:
+            COMPTURNTIMER = pygame.time.get_ticks()
+            if COMPTURNTIMER - TURNTIMER >= 2000:
+                self.rowX, self.rowY = self.moves[0]
+                TOKENS.append(Tokens(REDTOKEN, pGameGrid[self.rowY][self.rowX], 'Hit', FIRETOKENIMAGELIST, EXPLOSIONIMAGELIST, None))
+                gamelogic[self.rowY][self.rowX] = 'T'
+                SHOTSOUND.play()
+                HITSOUND.play()
+                self.moves.remove((self.rowX, self.rowY))
+                self.turn = False
+        return self.turn
