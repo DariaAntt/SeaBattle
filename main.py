@@ -1,6 +1,7 @@
 #  Module Imports
 import os
 import sys
+from tkinter.messagebox import showerror
 import webbrowser
 import pygame
 import random
@@ -425,6 +426,8 @@ def load_fleet_from_file(fleet):
                 print(f"Корабль '{ship.name}' отсутствует в данных. Возвращён в начальное положение.")
                 ship.returnToDefaultPosition()
 
+   
+
 
 # ------------------------------------------------------------------------------
 # ---------------------------------- Игрок -------------------------------------
@@ -473,7 +476,7 @@ class EasyComputer:
 
     def makeAttack(self, gamelogic):
         COMPTURNTIMER = pygame.time.get_ticks()
-        if COMPTURNTIMER - TURNTIMER >= 3000:
+        if COMPTURNTIMER - TURNTIMER >= DELAY:
             validChoice = False
             while not validChoice:
                 rowX = random.randint(0, 9)
@@ -513,7 +516,7 @@ class HardComputer(EasyComputer):
     def makeAttack(self, gamelogic):
         if len(self.moves) == 0:
             COMPTURNTIMER = pygame.time.get_ticks()
-            if COMPTURNTIMER - TURNTIMER >= 3000:
+            if COMPTURNTIMER - TURNTIMER >= DELAY:
                 validChoice = False
                 while not validChoice:
                     rowX = random.randint(0, 9)
@@ -539,7 +542,7 @@ class HardComputer(EasyComputer):
 
         elif len(self.moves) > 0:
             COMPTURNTIMER = pygame.time.get_ticks()
-            if COMPTURNTIMER - TURNTIMER >= 2000:
+            if COMPTURNTIMER - TURNTIMER >= DELAY:
                 rowX, cur_Y = self.moves[0]
                 TOKENS.append(Tokens(REDTOKEN, pGameGrid[rowX][cur_Y], 'Hit', FIRETOKENIMAGELIST, EXPLOSIONIMAGELIST, None))
                 gamelogic[rowX][cur_Y] = 'T'
@@ -615,7 +618,7 @@ class DiagonalComputer(EasyComputer):
     def makeAttack(self, gamelogic):
         if len(self.moves) == 0:
             COMPTURNTIMER = pygame.time.get_ticks()
-            if COMPTURNTIMER - TURNTIMER >= 300:
+            if COMPTURNTIMER - TURNTIMER >= DELAY:
                 validChoice = False
                 count = 0 
                 while not validChoice: 
@@ -729,7 +732,7 @@ class DiagonalComputer(EasyComputer):
         elif len(self.moves) > 0:
             print(f'self.moves  {self.moves}')
             COMPTURNTIMER = pygame.time.get_ticks()
-            if COMPTURNTIMER - TURNTIMER >= 2000:
+            if COMPTURNTIMER - TURNTIMER >= DELAY:
                 self.cur_X, self.cur_Y = self.moves[0]
                 TOKENS.append(Tokens(REDTOKEN, pGameGrid[self.cur_Y][self.cur_X], 'Hit', FIRETOKENIMAGELIST, EXPLOSIONIMAGELIST, None))
                 gamelogic[self.cur_Y][self.cur_X] = 'T'
@@ -1182,11 +1185,17 @@ def startScreen(window):
                         elif button.name == 'Информация о разработчиках' and button.active == True:
                             GAMESTATE = 'Developers Info'
                             return
+                            
                         elif button.name == 'Руководство по приложению' and button.active == True:
-                            # Получаем абсолютный путь к файлу system.html
-                            file_path = os.path.abspath("system.html")
-                            # Открываем файл в браузере
-                            webbrowser.open(f"file://{file_path}")
+                            # Проверка существования файла
+                            if os.path.exists("system.html"):
+                                try:
+                                    file_path = os.path.abspath("system.html")
+                                    webbrowser.open(f"file://{file_path}")
+                                except Exception as e:
+                                    showerror("Ошибка", f"Файл поврежден: {e}")
+                            else:
+                                showerror("Ошибка", "Файл со справочной информацией о системе (system.html) не найден.")                                
         # Отображение сообщения об ошибке
         window.fill((255, 255, 255))  # Очистка экрана
         window.blit(BACKGROUND, (0, 0))
@@ -1509,7 +1518,7 @@ def deploymentScreen(window):
         ship.snapToGrid(pGameGrid)
 
     for ship in cFleet:
-        ship.draw(window)
+        # ship.draw(window)
         ship.snapToGridEdge(cGameGrid)
         ship.snapToGrid(cGameGrid)
 
@@ -1647,6 +1656,7 @@ TURNTIMER = pygame.time.get_ticks()
 GAMESTATE = 'Start Menu'
 PREV_GAMESTATE = ''
 PLAYER_WIN = False
+DELAY = 300
 
 #  Colors
 ERROR_COLOR = '#FF0000'
