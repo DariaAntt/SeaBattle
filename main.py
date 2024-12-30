@@ -1,6 +1,7 @@
 #  Module Imports
 import os
 import sys
+import webbrowser
 import pygame
 import random
 import json
@@ -1154,7 +1155,7 @@ def startScreen(window):
     window.fill((255, 255, 255))
     window.blit(BACKGROUND, (0, 0))
     for button in BUTTONS:
-        if button.name in ['Создать профиль', 'Начать игру', 'Руководство приложения', 'Информация о разработчиках']:
+        if button.name in ['Создать профиль', 'Начать игру', 'Руководство по приложению', 'Информация о разработчиках']:
             button.active = True
             button.draw(window)
         else:
@@ -1181,12 +1182,16 @@ def startScreen(window):
                         elif button.name == 'Информация о разработчиках' and button.active == True:
                             GAMESTATE = 'Developers Info'
                             return
-
+                        elif button.name == 'Руководство по приложению' and button.active == True:
+                            # Получаем абсолютный путь к файлу system.html
+                            file_path = os.path.abspath("system.html")
+                            # Открываем файл в браузере
+                            webbrowser.open(f"file://{file_path}")
         # Отображение сообщения об ошибке
         window.fill((255, 255, 255))  # Очистка экрана
         window.blit(BACKGROUND, (0, 0))
         for button in BUTTONS:
-            if button.name in ['Создать профиль', 'Начать игру', 'Руководство приложения', 'Информация о разработчиках']:
+            if button.name in ['Создать профиль', 'Начать игру', 'Руководство по приложению', 'Информация о разработчиках']:
                 button.draw(window)
 
         if error_message:
@@ -1702,7 +1707,7 @@ BUTTONFILE = loadImage('assets/images/buttons/button_file.png', (230, 40))
 
 
 BUTTONS = [
-    Button(BUTTONIMAGEIINFO, (300, 50), (20, 20), 'Руководство приложения'),
+    Button(BUTTONIMAGEIINFO, (300, 50), (20, 20), 'Руководство по приложению'),
     Button(BUTTONIMAGEIINFO, (300, 50), (SCREENWIDTH - 320, 20), 'Информация о разработчиках'),
     
     Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 - 80), 'Создать профиль'),
