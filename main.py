@@ -39,6 +39,8 @@ class Ship:
         self.rotation = False
         #  Ship is current selection
         self.active = False
+        # Indicates whether the ship is placed on the grid
+        self.placed = False
 
 
     def selectShipAndMove(self):
@@ -52,10 +54,12 @@ class Ship:
                         if event.button == 1:
                             self.hImageRect.center = self.vImageRect.center = self.rect.center
                             self.active = False
-
+                            self.placed = True  # Mark the ship as placed
                     if event.button == 3:
                         self.rotateShip()
-
+    def isPlaced(self):
+        """Check if the ship has been placed on the grid"""
+        return self.placed
 
     def rotateShip(self, doRotation=False):       
         """Поворачивает корабль между вертикальным и горизонтальным положением."""
@@ -234,9 +238,9 @@ class Button:
                 self.resetShips(pFleet)
             elif self.name == 'Играть':
                 self.deploymentPhase()
-            elif self.name == 'Сохранить':
+            elif self.name == 'Сохранить в файл':
                 save_fleet_to_file(pFleet)
-            elif self.name == 'Загрузить':
+            elif self.name == 'Загрузить из файла':
                 load_fleet_from_file(pFleet)
             elif self.name == 'Выйти':
                 pass
@@ -277,9 +281,9 @@ class Button:
             self.name = ''
         if self.name == 'Берега' and gameStatus == False:
             self.name = ''
-        if self.name == 'Сохранить' and gameStatus == False:
+        if self.name == 'Сохранить в файл' and gameStatus == False:
             self.name = ''
-        if self.name == 'Загрузить' and gameStatus == False:
+        if self.name == 'Загрузить из файла' and gameStatus == False:
             self.name = ''
         # if self.name == 'Выйти' and gameStatus == True:
         #     self.name = 'Сбросить'
@@ -614,8 +618,6 @@ class DiagonalComputer(EasyComputer):
                 validChoice = False
                 count = 0 
                 while not validChoice: 
-                    print('---------------------------------------------------')
-                    print(f'self.step_back = {self.step_back}')
                     count += 1
                     if count > 5:
                         pygame.quit()
@@ -636,7 +638,6 @@ class DiagonalComputer(EasyComputer):
                         self.start_attack = False
 
                     else:
-                        print(f'self.start_seria_X = {self.start_seria_X}\tself.start_seria_Y = {self.start_seria_Y}')
                         self.cur_X += 1
                         if self.cur_X >= 10:
                             if not self.step_back:
@@ -666,26 +667,16 @@ class DiagonalComputer(EasyComputer):
                                     self.cur_X = self.start_X
                                     self.cur_Y = 0 
                             else:
-                                print('self.step_back == True!!!!!!!!!!!!!!!!!!!!!!')
                                 if self.start_X - self.step <= 0:
-                                    # self.start_X = self.cur_X
                                     self.start_Y = 0
-                                    print('\n\tfor i in range(self.step):')
                                     for i in range(self.step):
                                         if self.start_X > 0: 
                                             self.start_X -= 1
-                                            print(' self.start_X -= 1 = ' + str( self.start_X))
                                         else: 
                                             self.start_Y += 1
-                                            print(' self.start_Y -= 1 = ' + str( self.start_Y))
                                             self.step_back = True
-                                        print('--------')
                                     self.cur_X = self.start_X
                                     self.cur_Y = self.start_Y
-                                    # self.start_X = 0
-                                    # self.cur_X = 0
-                                    # self.cur_Y = self.step
-                                    # self.start_Y = self.step
                                 else: 
                                     self.start_X -= self.step 
                                     self.cur_X = self.start_X
@@ -701,40 +692,23 @@ class DiagonalComputer(EasyComputer):
                                     if len(self.free_X) != 0:                    
                                         self.start_X = random.choice(self.free_X)
                                         self.start_seria_X = self.start_X
-                                        print('random.choice(self.free_X) = ' + str(self.start_X))                                          
                                         self.cur_X = self.start_X
                                         self.start_Y = 0
                                         self.cur_Y = 0
                                     else:
                                         self.start_Y = random.choice(self.free_Y)
                                         self.start_seria_Y = self.start_Y
-                                        print('random.choice(self.free_Y) = ' + str(self.start_Y))  
                                         self.cur_Y = self.start_Y
                                         self.start_X = 0
                                         self.cur_X = 0
-                                    # self.step_back = False
                                 else:
                                     self.cur_Y = self.start_Y
                                     self.cur_X = 0
-                            # else:
-                            #     if len(self.free_X) != 0:                    
-                            #         self.start_X = random.choice(self.free_X)  
-                            #         self.cur_X = self.start_X
-                            #         self.start_Y = 0
-                            #         self.cur_Y = 0
-
-                            
-                    print(f'\n Координаты выбраны {str(count)}')
-                    print('\ncur_X = ' + str(self.cur_X) + '\ncur_Y=' + str(self.cur_Y) + '\nstep=' + str(self.step))
-                    print('\nself.start_X =' + str(self.start_X) + '\nself.start_Y =' + str(self.start_Y))
 
                     if gamelogic[self.cur_Y][self.cur_X] == ' ' or gamelogic[self.cur_Y][self.cur_X] == 'O':
                         validChoice = True
                         if self.cur_Y == 0: self.free_X.remove(self.cur_X)
                         if self.cur_X == 0: self.free_Y.remove(self.cur_Y)
-                        print('self.free_X: ' + str(self.free_X))
-                        print('self.free_Y: ' + str(self.free_Y))
-
 
                 if gamelogic[self.cur_Y][self.cur_X] == 'O':
                     TOKENS.append(
@@ -752,6 +726,7 @@ class DiagonalComputer(EasyComputer):
                     self.turn = False
 
         elif len(self.moves) > 0:
+            print(f'self.moves  {self.moves}')
             COMPTURNTIMER = pygame.time.get_ticks()
             if COMPTURNTIMER - TURNTIMER >= 2000:
                 self.cur_X, self.cur_Y = self.moves[0]
@@ -764,15 +739,23 @@ class DiagonalComputer(EasyComputer):
         return self.turn
 
 
-    def generateMoves(self, coords, grid, lstDir=None):
+    def generateMoves(self, coords, grid, lstDir = None):
         x, y = coords
         nx, ny = 0, 0
         for direction in ['North', 'South', 'East', 'West']:
             if direction == 'North' and lstDir != 'North':
-                nx = x - 1
-                ny = y
+                nx = x
+                ny = y + 1
                 if not (nx > 9 or ny > 9 or nx < 0 or ny < 0):
-                    if (nx, ny) not in self.moves and grid[nx][ny] == 'O':
+                    if (nx, ny) not in self.moves and grid[nx][ny] == ' ':
+                        self.moves.append((nx, ny))
+                        self.generateMoves((nx, ny), grid, 'East')
+
+            if direction == 'East' and lstDir != 'East':
+                nx = x
+                ny = y + 1
+                if not (nx > 9 or ny > 9 or nx < 0 or ny < 0):
+                    if (nx, ny) not in self.moves and grid[nx][ny] == ' ':
                         self.moves.append((nx, ny))
                         self.generateMoves((nx, ny), grid, 'South')
 
@@ -780,15 +763,7 @@ class DiagonalComputer(EasyComputer):
                 nx = x + 1
                 ny = y
                 if not (nx > 9 or ny > 9 or nx < 0 or ny < 0):
-                    if (nx, ny) not in self.moves and grid[nx][ny] == 'O':
-                        self.moves.append((nx, ny))
-                        self.generateMoves((nx, ny), grid, 'North')
-
-            if direction == 'East' and lstDir != 'East':
-                nx = x
-                ny = y + 1
-                if not (nx > 9 or ny > 9 or nx < 0 or ny < 0):
-                    if (nx, ny) not in self.moves and grid[nx][ny] == 'O':
+                    if (nx, ny) not in self.moves and grid[nx][ny] == ' ':
                         self.moves.append((nx, ny))
                         self.generateMoves((nx, ny), grid, 'West')
 
@@ -796,133 +771,9 @@ class DiagonalComputer(EasyComputer):
                 nx = x
                 ny = y - 1
                 if not (nx > 9 or ny > 9 or nx < 0 or ny < 0):
-                    if (nx, ny) not in self.moves and grid[nx][ny] == 'O':
+                    if (nx, ny) not in self.moves and grid[nx][ny] == ' ':
                         self.moves.append((nx, ny))
-                        self.generateMoves((nx, ny), grid, 'East')
-        return 
-
-
-
-
-
-# ------------------------------------------------------------------------------------------------------
-# ------------------------------------- Противник с квадрадной атакой ----------------------------------
-# ------------------------------------------------------------------------------------------------------
-class SquareComputer(EasyComputer):
-    def __init__(self):
-        super().__init__()
-        board_size = 10
-        self.square_size = 3  # Размер стороны квадрата
-        self.current_square_start = (0, 0)  # Координаты первого квадрата
-        self.attack_sequence = self.generate_square_sequence()
-
-    def generate_square_sequence(self):
-        """
-        Генерирует последовательность клеток для атаки в рамках текущего квадрата.
-        """
-        x, y = self.current_square_start
-        sequence = [
-            (x, y),
-            (x, y + self.square_size - 1),
-            (x + self.square_size - 1, y + self.square_size - 1),
-            (x + self.square_size - 1, y),
-        ]
-        # Добавляем клетки вокруг центральной точки квадрата по часовой стрелке
-        for i in range(self.square_size):
-            sequence.append((x + i, y))  # Левая сторона
-            sequence.append((x, y + i))  # Верхняя сторона
-            sequence.append((x + i, y + self.square_size - 1))  # Правая сторона
-            sequence.append((x + self.square_size - 1, y + i))  # Нижняя сторона
-        # Убираем дубликаты и возвращаем
-        return list(dict.fromkeys(sequence))
-
-    def update_square_start(self):
-        """
-        Обновляет координаты начальной точки следующего квадрата.
-        """
-        x, y = self.current_square_start
-        x += self.square_size
-        if x >= self.board_size:
-            x = 0
-            y += self.square_size
-        self.current_square_start = (x, y)
-        if y >= self.board_size:
-            self.current_square_start = (0, 0)  # Возвращаемся в начало
-
-    def makeAttack(self):
-        """
-        Выполняет атаку по квадратной стратегии.
-        """
-        while self.attack_sequence:
-            target = self.attack_sequence.pop(0)
-            if self.is_valid_attack(target):
-                self.record_attack(target)
-                return target
-        # Если текущий квадрат исчерпан, переходим к следующему
-        self.update_square_start()
-        self.attack_sequence = self.generate_square_sequence()
-        return self.makeAttack()
-
-    def is_valid_attack(self, target):
-        """
-        Проверяет, является ли цель валидной для атаки (не атакована ранее).
-        """
-        x, y = target
-        return 0 <= x < self.board_size and 0 <= y < self.board_size and target not in self.attacked_positions
-
-    def record_attack(self, target):
-        """
-        Записывает атаку в список атакованных позиций.
-        """
-        self.attacked_positions.add(target)
-        
-    # def __init__(self):
-    #     super().__init__()
-    #     self.moves = []
-
-    # def makeAttack(self, gamelogic):
-    #     return self.turn
-
-
-
-    # def generateMoves(self, coords, grid, lstDir=None):
-    #     x, y = coords
-    #     nx, ny = 0, 0
-    #     for direction in ['North', 'South', 'East', 'West']:
-    #         if direction == 'North' and lstDir != 'North':
-    #             nx = x - 1
-    #             ny = y
-    #             if not (nx > 9 or ny > 9 or nx < 0 or ny < 0):
-    #                 if (nx, ny) not in self.moves and grid[nx][ny] == 'O':
-    #                     self.moves.append((nx, ny))
-    #                     self.generateMoves((nx, ny), grid, 'South')
-
-    #         if direction == 'South' and lstDir != 'South':
-    #             nx = x + 1
-    #             ny = y
-    #             if not (nx > 9 or ny > 9 or nx < 0 or ny < 0):
-    #                 if (nx, ny) not in self.moves and grid[nx][ny] == 'O':
-    #                     self.moves.append((nx, ny))
-    #                     self.generateMoves((nx, ny), grid, 'North')
-
-    #         if direction == 'East' and lstDir != 'East':
-    #             nx = x
-    #             ny = y + 1
-    #             if not (nx > 9 or ny > 9 or nx < 0 or ny < 0):
-    #                 if (nx, ny) not in self.moves and grid[nx][ny] == 'O':
-    #                     self.moves.append((nx, ny))
-    #                     self.generateMoves((nx, ny), grid, 'West')
-
-    #         if direction == 'West' and lstDir != 'West':
-    #             nx = x
-    #             ny = y - 1
-    #             if not (nx > 9 or ny > 9 or nx < 0 or ny < 0):
-    #                 if (nx, ny) not in self.moves and grid[nx][ny] == 'O':
-    #                     self.moves.append((nx, ny))
-    #                     self.generateMoves((nx, ny), grid, 'East')
-    #     return
-
-
+        return
 
 
 
@@ -1584,7 +1435,7 @@ def mainMenuScreen(window):
 
 
     for button in BUTTONS:
-        if button.name in ['Легкий', 'Сложный']:
+        if button.name in ['Легкий', 'Средний', 'Сложный']:
             button.active = True
             button.draw(window)
         else:
@@ -1624,6 +1475,25 @@ def deploymentScreen(window):
     window.blit(login_surface, (SCREENWIDTH - (ROWS * CELLSIZE) - CELLSIZE*4, 130-login_surface.get_height()))
 
 
+    # # Функция проверки состояния расстановки кораблей
+    # def checkFleetDeployment(fleet):
+    #     if not fleet:
+    #         return "расставьте корабли на игровом поле"
+    #     for ship in fleet:
+    #         if not ship.isPlaced():
+    #             return "Завершите расстановку. Не все корабли расставлены."
+    #     return None
+
+    # # Проверяем состояние перед началом игры
+    # error_message = checkFleetDeployment(pFleet)
+
+    # # Отображаем сообщение об ошибке, если оно есть
+    # if error_message:
+    #     error_font = pygame.font.Font(None, 24)
+    #     error_surface = error_font.render(error_message, True, (255, 0, 0))
+    #     window.blit(error_surface, (CELLSIZE * 3, SCREENHEIGHT - error_surface.get_height() - 10))
+
+
     #  Draws the player and computer grids to the screen
     # showGridOnScreen(window, CELLSIZE, pGameGrid, cGameGrid)
 
@@ -1640,8 +1510,9 @@ def deploymentScreen(window):
 
     for button in BUTTONS:
         if DEPLOYMENT:
-            if button.name in ['Случайная', 'Сбросить', 'Играть', 'Берега', 'Сохранить', 'Загрузить']:
+            if button.name in ['Случайная', 'Сбросить', 'Играть', 'Берега', 'Сохранить в файл', 'Загрузить из файла']:
                 button.active = True
+                # button.active = error_message is None and button.name == 'Играть' or button.name != 'Играть'
                 button.draw(window)
             else:
                 button.active = False
@@ -1799,12 +1670,10 @@ STAGE = ['Start Menu', 'Registration', 'Select Avatar','Main Menu', 'Deployment'
 
 #  Loading Game Variables
 pGameGrid = createGameGrid(ROWS, COLS, CELLSIZE, (CELLSIZE*4, 130 + CELLSIZE))
-# pGameGrid = createGameGrid(ROWS, COLS, CELLSIZE, (CELLSIZE, CELLSIZE))
 pGameLogic = createGameLogic(ROWS, COLS)
 pFleet = createFleet()
 
 cGameGrid = createGameGrid(ROWS, COLS, CELLSIZE, (SCREENWIDTH - (ROWS * CELLSIZE) - CELLSIZE*3, 130 + CELLSIZE))
-# cGameGrid = createGameGrid(ROWS, COLS, CELLSIZE, (SCREENWIDTH - (ROWS * CELLSIZE), CELLSIZE))
 cGameLogic = createGameLogic(ROWS, COLS)
 cFleet = createFleet()
 randomizeShipPositions(cFleet, cGameGrid)
@@ -1826,6 +1695,11 @@ BUTTONIMAGE = loadImage('assets/images/buttons/button.png', (110, 40))
 BUTTONIMAGE1 = loadImage('assets/images/buttons/button.png', (200, 50))
 BUTTONIMAGEIINFO = loadImage('assets/images/buttons/button.png', (300, 50))
 BUTTONADD = loadImage('assets/images/buttons/add_btn.png', (40, 40))
+BUTTONPLAY = loadImage('assets/images/buttons/button_play.png', (110, 40))
+BUTTONCLEAR = loadImage('assets/images/buttons/button_clear.png', (110, 40))
+BUTTONFILE = loadImage('assets/images/buttons/button_file.png', (230, 40))
+
+
 
 BUTTONS = [
     Button(BUTTONIMAGEIINFO, (300, 50), (20, 20), 'Руководство приложения'),
@@ -1833,24 +1707,26 @@ BUTTONS = [
     
     Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 - 80), 'Создать профиль'),
     Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 + 30), 'Начать игру'),
+
     
     Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT - 150), 'Сохранить профиль'),
     Button(BUTTONADD, (40, 40), (SCREENWIDTH/2 + 50, 250), 'null_add'),
     Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT - 150), 'Выбрать'),
 
-    Button(BUTTONIMAGE, (110, 40), (570, 510), 'Случайная'),    
-    Button(BUTTONIMAGE, (110, 40), (690, 510), 'Берега'),
-    Button(BUTTONIMAGE, (110, 40), (810, 510), 'Сбросить'),
-    Button(BUTTONIMAGE, (110, 40), (570, 560), 'Сохранить'),
-    Button(BUTTONIMAGE, (110, 40), (690, 560), 'Загрузить'),
-    Button(BUTTONIMAGE, (110, 40), (810, 560), 'Играть'),
+    Button(BUTTONIMAGE, (110, 40), (570, 495), 'Случайная'),    
+    Button(BUTTONIMAGE, (110, 40), (690, 495), 'Берега'),
+    Button(BUTTONCLEAR, (110, 40), (810, 495), 'Сбросить'),
+    Button(BUTTONFILE, (230, 40), (570, 545), 'Сохранить в файл'),
+    Button(BUTTONFILE, (230, 40), (570, 595), 'Загрузить из файла'),
+    Button(BUTTONPLAY, (110, 40), (810, 545), 'Играть'),
     Button(BUTTONIMAGE, (110, 40), (SCREENWIDTH/2 - 55, SCREENHEIGHT - 70), 'Выйти'),
 
     Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 - 80), 'Сыграть еще раз'),
     Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 + 30), ' Выйти '),
 
-    Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 - 80), 'Легкий'),
-    Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 + 30), 'Сложный')
+    Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 - 95), 'Легкий'),
+    Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 - 25), 'Средний'),
+    Button(BUTTONIMAGE1, (200, 50), (SCREENWIDTH/2 - 100, SCREENHEIGHT/2 + 45), 'Сложный')
 ]
 REDTOKEN = loadImage('assets/images/tokens/redtoken.png', (CELLSIZE, CELLSIZE))
 GREENTOKEN = loadImage('assets/images/tokens/greentoken.png', (CELLSIZE, CELLSIZE))
@@ -1942,15 +1818,16 @@ while RUNGAME:
                             DEPLOYMENT = status
                             GAMESTATE = STAGE[0]
 
-                        elif (button.name == 'Легкий' or button.name == 'Сложный') and button.active == True:
+                        elif (button.name == 'Легкий' or button.name == 'Средний' or button.name == 'Сложный') and button.active == True:
                             if button.name == 'Легкий':
                                 computer = EasyComputer()
-                            elif button.name == 'Сложный' and button.active:
-                                # Инициализация сложного компьютера с квадратной стратегией
-                                square_size = 3  # Размер стороны квадрата (можно варьировать)
-                                board_size = ROWS  # Предполагается, что поле квадратное
+                            elif button.name == 'Средний' and button.active:
+                                square_size = 3     # Размер стороны квадрата (можно варьировать)
+                                board_size = ROWS   # Предполагается, что поле квадратное
                                 computer = DiagonalComputer()
-                                GAMESTATE = 'Deployment'
+                            elif button.name == 'Сложный':
+                                computer = EasyComputer()
+
                             if GAMESTATE == 'Game Over':
                                 TOKENS.clear()
                                 for ship in pFleet:
